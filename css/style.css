@@ -1,0 +1,39 @@
+/* RESPONSIVIDADE */
+/* TABLET */
+@media (min-width: 768px) {
+  .container {
+    flex-direction: row;
+  }
+
+  .painel-esquerdo,
+  .painel-direito {
+    flex: 1;
+  }
+}
+
+/* DESKTOP */
+@media (min-width: 1024px) {
+  #btnEmergencia {
+    width: 250px;
+    height: 250px;
+    font-size: 24px;
+  }
+}
+
+/* TV */
+@media (min-width: 1440px) {
+  body {
+    font-size: 20px;
+  }
+
+  #btnEmergencia {
+    width: 300px;
+    height: 300px;
+  }
+
+  #btnDesativar,
+  #btnEntrar {
+    padding: 20px;
+    font-size: 18px;
+  }
+}
