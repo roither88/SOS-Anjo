@@ -118,3 +118,21 @@
     background: linear-gradient(180deg, #dd3333 0%, #990000 100%);
     box-shadow: 0 4px 28px rgba(220, 0, 0, 0.7);
 }
+
+.botao-navbar {
+    height: 36px;
+    padding: 0 14px;
+    border: 1px solid #992020;
+    border-radius: 4px;
+    background: linear-gradient(180deg, #bb2222 0%, #650000 100%);
+    color: #fff;
+    font-family: 'Oswald', Arial, sans-serif;
+    font-size: 13px;
+    letter-spacing: 1px;
+    cursor: pointer;
+}
+
+.botao-navbar.secundario {
+    background: linear-gradient(180deg, #333333 0%, #191919 100%);
+    border-color: #4e4e4e;
+}

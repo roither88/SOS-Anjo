@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="scr/css/main.css">
-    <title>Botão de Emergência</title>
+    <title>SOS-Anjo</title>
 </head>
 
 <body>
@@ -13,13 +13,27 @@
     <!-- Faixa de perigo no topo -->
     <div class="faixa-alerta"></div>
 
+    <nav class="navbar-topo">
+        <div class="navbar-esquerda">
+            <strong>SOS-Anjo</strong>
+            <span id="statusLogin" class="status-login">Não logado</span>
+        </div>
+        <div class="navbar-direita">
+            <input type="text" id="loginNome" placeholder="Nome de login">
+            <input type="password" id="loginSenha" placeholder="Senha">
+            <button id="btnLogin" class="botao-navbar">LOGIN</button>
+            <button id="btnLogout" class="botao-navbar secundario">SAIR</button>
+            <button id="btnIrCadastro" class="botao-navbar secundario">IR PARA CADASTRO</button>
+        </div>
+    </nav>
+
     <!-- Luzes LED nos cantos -->
     <div class="corner corner-tl"></div>
     <div class="corner corner-tr"></div>
     <div class="corner corner-bl"></div>
     <div class="corner corner-br"></div>
 
-    <div class="container">
+    <div class="container container-principal">
 
         <!-- ESQUERDA -->
         <div class="painel-esquerdo">
@@ -36,51 +50,9 @@
 
         </div>
 
-        <!-- DIREITA -->
-        <div class="painel-direito">
-
-            <div class="login-box">
-                <span class="campo-titulo">Nome:</span>
-
-                <div class="campo">
-                    <div class="input-wrapper">
-                        <span class="icone">&#128100;</span>
-                        <input type="text" id="nome">
-                    </div>
-                </div>
-
-                <div class="campo">
-                    <div class="input-wrapper">
-                        <span class="icone">&#128205;</span>
-                        <span class="campo-label">Local:</span>
-                        <input type="text" id="local">
-                    </div>
-                </div>
-
-                <div class="campo">
-                    <div class="input-wrapper">
-                        <span class="icone">&#128274;</span>
-                        <span class="campo-label">Senha:</span>
-                        <input type="password" id="senha">
-                    </div>
-                </div>
-
-                <button id="btnEntrar" class="botao-entrar">ENTRAR</button>
-            </div>
-
-            <div class="alertas-box">
-                <h3>Alertas Ativos:</h3>
-                <ul id="listaAlertas">
-                    <li><span class="alerta-icone">&#9888;</span> Carlos - Sala 3</li>
-                    <li><span class="alerta-icone">&#9888;</span> Ana - Recepção</li>
-                </ul>
-            </div>
-
-        </div>
-
     </div>
 
-    <script src="scr/js/app.js"></script>
+    <script src="scr/js/main.js"></script>
 
 </body>
 </html>

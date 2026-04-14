@@ -1,9 +1,83 @@
+.navbar-topo {
+    position: fixed;
+    top: 24px;
+    left: 0;
+    right: 0;
+    z-index: 120;
+    height: 58px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 10px 26px;
+    background: linear-gradient(180deg, rgba(20, 20, 20, 0.98) 0%, rgba(8, 8, 8, 0.98) 100%);
+    border-bottom: 1px solid #2e2e2e;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+
+.navbar-esquerda {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    letter-spacing: 1px;
+}
+
+.navbar-direita {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.navbar-direita input {
+    height: 36px;
+    min-width: 155px;
+    padding: 0 10px;
+    background: #101010;
+    border: 1px solid #383838;
+    border-radius: 4px;
+    color: #fff;
+    font-family: 'Oswald', Arial, sans-serif;
+    letter-spacing: 0.8px;
+}
+
+.status-login {
+    font-size: 13px;
+    color: #ff8888;
+    border: 1px solid #6a1f1f;
+    background: rgba(110, 0, 0, 0.15);
+    padding: 4px 10px;
+    border-radius: 999px;
+}
+
+.status-login.ativo {
+    color: #baf7a0;
+    border-color: #2f7d2d;
+    background: rgba(30, 90, 20, 0.25);
+}
+
 .container {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 35px;
-    padding: 55px 50px 40px;
-    height: 100vh;
+    padding: 128px 50px 40px;
+    min-height: 100vh;
+}
+
+.container-principal {
+    justify-content: center;
+}
+
+.container-principal .painel-esquerdo {
+    flex: none;
+}
+
+.container-cadastro {
+    justify-content: center;
+}
+
+.painel-direito-cadastro {
+    width: min(640px, 100%);
 }
 
 .painel-esquerdo {
@@ -39,4 +113,36 @@
     border-radius: 6px;
     background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, transparent 60%);
     pointer-events: none;
+}
+
+@media (max-width: 980px) {
+    .navbar-topo {
+        height: auto;
+        padding: 10px 12px;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .navbar-direita {
+        flex-wrap: wrap;
+    }
+
+    .navbar-direita input {
+        min-width: 130px;
+        flex: 1;
+    }
+
+    .container {
+        padding: 180px 16px 30px;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .container-principal {
+        align-items: center;
+    }
+
+    .painel-esquerdo {
+        flex: none;
+    }
 }

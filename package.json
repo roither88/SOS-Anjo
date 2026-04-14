@@ -1,0 +1,13 @@
+{
+  "name": "sos-anjo",
+  "version": "1.0.0",
+  "description": "Aplicacao SOS-Anjo com backend Node.js e SQLite",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "sqlite3": "^5.1.7"
+  }
+}
