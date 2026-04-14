@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="scr/css/main.css">
+    <title>Botão de Emergência</title>
+</head>
+
+<body>
+
+    <!-- Faixa de perigo no topo -->
+    <div class="faixa-alerta"></div>
+
+    <!-- Luzes LED nos cantos -->
+    <div class="corner corner-tl"></div>
+    <div class="corner corner-tr"></div>
+    <div class="corner corner-bl"></div>
+    <div class="corner corner-br"></div>
+
+    <div class="container">
+
+        <!-- ESQUERDA -->
+        <div class="painel-esquerdo">
+
+            <button id="btnEmergencia" class="botao-emergencia">
+                <span class="push-text">PUSH</span>
+                <span class="for-text">— FOR —</span>
+                <span class="survive-text">SURVIVE</span>
+            </button>
+
+            <button id="btnDesativar" class="botao-desativar">
+                DESATIVAR ALERTA
+            </button>
+
+        </div>
+
+        <!-- DIREITA -->
+        <div class="painel-direito">
+
+            <div class="login-box">
+                <span class="campo-titulo">Nome:</span>
+
+                <div class="campo">
+                    <div class="input-wrapper">
+                        <span class="icone">&#128100;</span>
+                        <input type="text" id="nome">
+                    </div>
+                </div>
+
+                <div class="campo">
+                    <div class="input-wrapper">
+                        <span class="icone">&#128205;</span>
+                        <span class="campo-label">Local:</span>
+                        <input type="text" id="local">
+                    </div>
+                </div>
+
+                <div class="campo">
+                    <div class="input-wrapper">
+                        <span class="icone">&#128274;</span>
+                        <span class="campo-label">Senha:</span>
+                        <input type="password" id="senha">
+                    </div>
+                </div>
+
+                <button id="btnEntrar" class="botao-entrar">ENTRAR</button>
+            </div>
+
+            <div class="alertas-box">
+                <h3>Alertas Ativos:</h3>
+                <ul id="listaAlertas">
+                    <li><span class="alerta-icone">&#9888;</span> Carlos - Sala 3</li>
+                    <li><span class="alerta-icone">&#9888;</span> Ana - Recepção</li>
+                </ul>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script src="scr/js/app.js"></script>
+
+</body>
+</html>
