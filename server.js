@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
+const https = require('https');
 const { URL } = require('url');
 const sqlite3 = require('sqlite3').verbose();
 
@@ -182,6 +183,38 @@ const server = http.createServer((req, res) => {
       .catch(() => {
         responderJson(res, 400, { erro: 'Corpo JSON invalido.' });
       });
+    return;
+  }
+
+  // POST /api/alerta — envia mensagem via CallMeBot (evita CORS no navegador)
+  if (req.method === 'POST' && urlObj.pathname === '/api/alerta') {
+    lerCorpoJson(req)
+      .then((body) => {
+        const telefone = String(body.telefone || '').trim();
+        const apikey   = String(body.apikey   || '').trim();
+        const texto    = String(body.texto    || '').trim();
+
+        if (!telefone || !apikey || !texto) {
+          responderJson(res, 400, { erro: 'Informe telefone, apikey e texto.' });
+          return;
+        }
+
+        const mensagem  = encodeURIComponent(texto);
+        const targetUrl = `https://api.callmebot.com/whatsapp.php?phone=${telefone}&text=${mensagem}&apikey=${apikey}`;
+
+        https.get(targetUrl, (cmbRes) => {
+          let dados = '';
+          cmbRes.on('data', (chunk) => { dados += chunk; });
+          cmbRes.on('end', () => {
+            console.log('CallMeBot:', dados);
+            responderJson(res, 200, { ok: true, resposta: dados });
+          });
+        }).on('error', (err) => {
+          console.error('Erro CallMeBot:', err.message);
+          responderJson(res, 500, { erro: 'Falha ao contatar o CallMeBot.' });
+        });
+      })
+      .catch(() => responderJson(res, 400, { erro: 'Corpo JSON invalido.' }));
     return;
   }
 
