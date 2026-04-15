@@ -1,26 +1,38 @@
+// Biblioteca nativa para manipular arquivos e pastas.
 const fs = require('fs');
+
+// Biblioteca nativa para montar caminhos de forma segura (Windows/Linux/macOS).
 const path = require('path');
+
+// Biblioteca nativa para criar servidor HTTP.
 const http = require('http');
+
+// Biblioteca nativa para fazer chamadas HTTPS (usada na rota de alerta).
 const https = require('https');
+
+// Classe URL para ler caminho e parametros da requisicao.
 const { URL } = require('url');
+
+// Driver SQLite para Node.js (verbose mostra logs de depuracao mais detalhados).
 const sqlite3 = require('sqlite3').verbose();
 
-// Porta usada pelo servidor local.
-const port = process.env.PORT || 3000;
+// Porta do servidor: usa a variavel de ambiente PORT se existir, senao 3000.
+const porta = process.env.PORT || 3000;
 
-// O banco fica em /data para não misturar com os arquivos da interface.
-const dbDir = path.join(__dirname, 'data');
-const dbPath = path.join(dbDir, 'sos-anjo.db');
+// Define onde o banco ficara salvo dentro do projeto.
+const pastaBanco = path.join(__dirname, 'data');
+const caminhoBanco = path.join(pastaBanco, 'sos-anjo.db');
 
-// Garante que a pasta do banco exista antes de abrir o arquivo SQLite.
-fs.mkdirSync(dbDir, { recursive: true });
+// Garante que a pasta do banco exista antes de abrir/criar o arquivo .db.
+fs.mkdirSync(pastaBanco, { recursive: true });
 
-// Abre ou cria o banco SQLite.
-const db = new sqlite3.Database(dbPath);
+// Abre (ou cria) o banco SQLite no caminho definido acima.
+const banco = new sqlite3.Database(caminhoBanco);
 
-// Cria a tabela de usuários na primeira execução, se ela ainda não existir.
-db.serialize(() => {
-  db.run(`
+// Executa comandos de inicializacao do banco em sequencia.
+banco.serialize(() => {
+  // Cria a tabela de usuarios apenas se ela ainda nao existir.
+  banco.run(`
     CREATE TABLE IF NOT EXISTS usuarios (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       nome TEXT NOT NULL UNIQUE,
@@ -30,8 +42,8 @@ db.serialize(() => {
   `);
 });
 
-// Tipos básicos para servir os arquivos estáticos do projeto.
-const mimeTypes = {
+// Mapeamento de extensao de arquivo para tipo MIME (cabecalho Content-Type).
+const tiposMime = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.js': 'application/javascript; charset=utf-8',
@@ -43,93 +55,118 @@ const mimeTypes = {
   '.ico': 'image/x-icon',
 };
 
-// Envia respostas JSON para a API.
-function responderJson(res, statusCode, payload) {
-  const body = JSON.stringify(payload);
+// Funcao utilitaria para responder JSON de forma padronizada.
+// res: objeto de resposta HTTP
+// codigoStatus: ex. 200, 400, 500
+// payload: objeto JavaScript que sera convertido para JSON
+function responderJson(res, codigoStatus, payload) {
+  const corpo = JSON.stringify(payload);
 
-  res.writeHead(statusCode, {
+  // Define cabecalhos importantes da resposta.
+  res.writeHead(codigoStatus, {
     'Content-Type': 'application/json; charset=utf-8',
-    'Content-Length': Buffer.byteLength(body),
+    'Content-Length': Buffer.byteLength(corpo),
   });
 
-  res.end(body);
+  // Finaliza enviando o JSON serializado.
+  res.end(corpo);
 }
 
-// Lê e envia o corpo JSON de uma requisição POST.
+// Le o corpo bruto da requisicao e tenta transformar em JSON.
+// Retorna uma Promise para facilitar o uso com .then()/.catch().
 function lerCorpoJson(req) {
   return new Promise((resolve, reject) => {
-    let data = '';
+    // Aqui vamos acumulando os "pedacos" (chunks) que chegam pela rede.
+    let dados = '';
 
+    // Evento disparado varias vezes enquanto o corpo esta chegando.
     req.on('data', (chunk) => {
-      data += chunk;
+      dados += chunk;
     });
 
+    // Evento disparado quando terminou de chegar tudo.
     req.on('end', () => {
-      if (!data) {
+      // Se nao vier corpo nenhum, devolve objeto vazio.
+      if (!dados) {
         resolve({});
         return;
       }
 
+      // Tenta converter string para JSON.
       try {
-        resolve(JSON.parse(data));
+        resolve(JSON.parse(dados));
       } catch (erro) {
+        // Se JSON estiver mal formatado, cai no reject.
         reject(erro);
       }
     });
 
+    // Captura erro de transmissao da propria requisicao.
     req.on('error', reject);
   });
 }
 
-// Serve arquivos do front-end, como index.html, CSS e JS.
-function servirArquivo(res, filePath) {
-  const ext = path.extname(filePath).toLowerCase();
-  const contentType = mimeTypes[ext] || 'application/octet-stream';
+// Envia um arquivo estatico para o navegador (HTML, CSS, JS, imagem etc.).
+function servirArquivo(res, caminhoArquivo) {
+  // Descobre a extensao e escolhe o tipo MIME adequado.
+  const extensao = path.extname(caminhoArquivo).toLowerCase();
+  const tipoConteudo = tiposMime[extensao] || 'application/octet-stream';
 
-  fs.readFile(filePath, (erro, conteudo) => {
+  // Le o arquivo no disco.
+  fs.readFile(caminhoArquivo, (erro, conteudo) => {
+    // Se nao encontrou o arquivo (ou outro erro de leitura), retorna 404.
     if (erro) {
       res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
       res.end('Arquivo nao encontrado.');
       return;
     }
 
+    // Se encontrou, devolve 200 com o tipo correto.
     res.writeHead(200, {
-      'Content-Type': contentType,
+      'Content-Type': tipoConteudo,
       'Content-Length': conteudo.length,
     });
 
+    // Envia o conteudo do arquivo para o cliente.
     res.end(conteudo);
   });
 }
 
-// Cria o servidor HTTP
-const server = http.createServer((req, res) => {
-  const urlObj = new URL(req.url, `http://${req.headers.host}`);
+// Cria o servidor HTTP principal da aplicacao.
+const servidor = http.createServer((req, res) => {
+  // Monta um objeto URL completo para facilitar a leitura da rota e parametros.
+  const urlRequisicao = new URL(req.url, `http://${req.headers.host}`);
 
-  // Permite chamadas da interface aberta em outra porta (ex.: 5500).
-  const isApi = urlObj.pathname.startsWith('/api/');
-  if (isApi) {
+  // Verifica se a rota e de API (/api/...) para aplicar CORS apenas nela.
+  const ehApi = urlRequisicao.pathname.startsWith('/api/');
+
+  // CORS permite que o front-end em outra porta (ex.: Live Server 5500) chame a API.
+  if (ehApi) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   }
 
-  if (req.method === 'OPTIONS' && isApi) {
+  // Requisicoes OPTIONS sao o "preflight" do CORS.
+  if (req.method === 'OPTIONS' && ehApi) {
     res.writeHead(204);
     res.end();
     return;
   }
 
-  // GET /api/usuario?nome=...
-  if (req.method === 'GET' && urlObj.pathname === '/api/usuario') {
-    const nome = String(urlObj.searchParams.get('nome') || '').trim();
+  // Rota: GET /api/usuario?nome=...
+  // Busca um usuario pelo nome e devolve id, nome e local.
+  if (req.method === 'GET' && urlRequisicao.pathname === '/api/usuario') {
+    const nome = String(urlRequisicao.searchParams.get('nome') || '').trim();
 
+    // Validacao basica: nome obrigatorio.
     if (!nome) {
       responderJson(res, 400, { erro: 'Informe o nome do usuario.' });
       return;
     }
 
-    db.get(
+    // Consulta no banco usando parametro para evitar SQL Injection.
+    banco.get(
       'SELECT id, nome, local FROM usuarios WHERE nome = ?',
       [nome],
       (erro, usuario) => {
@@ -149,21 +186,23 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // POST /api/usuario
-  if (req.method === 'POST' && urlObj.pathname === '/api/usuario') {
+  // Rota: POST /api/usuario
+  // Cadastra um novo usuario no banco.
+  if (req.method === 'POST' && urlRequisicao.pathname === '/api/usuario') {
     lerCorpoJson(req)
-      .then((body) => {
-        const nome = String(body.nome || '').trim();
-        const local = body.local ? String(body.local).trim() : null;
-        const senha = body.senha ? String(body.senha).trim() : null;
+      .then((corpo) => {
+        // Extrai e higieniza os campos enviados pelo front-end.
+        const nome = String(corpo.nome || '').trim();
+        const local = corpo.local ? String(corpo.local).trim() : null;
+        const senha = corpo.senha ? String(corpo.senha).trim() : null;
 
         if (!nome) {
           responderJson(res, 400, { erro: 'Informe o nome do usuario.' });
           return;
         }
 
-        // Salva o usuario no SQLite.
-        db.run(
+        // Insere registro na tabela usuarios.
+        banco.run(
           'INSERT INTO usuarios (nome, local, senha) VALUES (?, ?, ?)',
           [nome, local, senha],
           function (erro) {
@@ -172,6 +211,7 @@ const server = http.createServer((req, res) => {
               return;
             }
 
+            // this.lastID contem o id gerado automaticamente pelo SQLite.
             responderJson(res, 201, {
               id: this.lastID,
               nome,
@@ -181,56 +221,72 @@ const server = http.createServer((req, res) => {
         );
       })
       .catch(() => {
+        // Se o JSON vier invalido, responde erro de requisicao.
         responderJson(res, 400, { erro: 'Corpo JSON invalido.' });
       });
     return;
   }
 
-  // POST /api/alerta — envia mensagem via CallMeBot (evita CORS no navegador)
-  if (req.method === 'POST' && urlObj.pathname === '/api/alerta') {
+  // Rota: POST /api/alerta
+  // Encaminha mensagem para o CallMeBot no servidor (evita bloqueio de CORS no navegador).
+  if (req.method === 'POST' && urlRequisicao.pathname === '/api/alerta') {
     lerCorpoJson(req)
-      .then((body) => {
-        const telefone = String(body.telefone || '').trim();
-        const apikey   = String(body.apikey   || '').trim();
-        const texto    = String(body.texto    || '').trim();
+      .then((corpo) => {
+        // Campos esperados para enviar WhatsApp pelo CallMeBot.
+        const telefone = String(corpo.telefone || '').trim();
+        const apikey = String(corpo.apikey || '').trim();
+        const texto = String(corpo.texto || '').trim();
 
         if (!telefone || !apikey || !texto) {
           responderJson(res, 400, { erro: 'Informe telefone, apikey e texto.' });
           return;
         }
 
-        const mensagem  = encodeURIComponent(texto);
-        const targetUrl = `https://api.callmebot.com/whatsapp.php?phone=${telefone}&text=${mensagem}&apikey=${apikey}`;
+        // Codifica texto para URL (espaco, acento e caracteres especiais).
+        const mensagem = encodeURIComponent(texto);
+        const urlDestino = `https://api.callmebot.com/whatsapp.php?phone=${telefone}&text=${mensagem}&apikey=${apikey}`;
 
-        https.get(targetUrl, (cmbRes) => {
-          let dados = '';
-          cmbRes.on('data', (chunk) => { dados += chunk; });
-          cmbRes.on('end', () => {
-            console.log('CallMeBot:', dados);
-            responderJson(res, 200, { ok: true, resposta: dados });
+        // Faz chamada GET para a API do CallMeBot.
+        https.get(urlDestino, (respostaCallMeBot) => {
+          let dadosRetorno = '';
+
+          // Acumula resposta da API externa.
+          respostaCallMeBot.on('data', (chunk) => {
+            dadosRetorno += chunk;
           });
-        }).on('error', (err) => {
-          console.error('Erro CallMeBot:', err.message);
+
+          // Quando terminar, retorna ao front-end o resultado recebido.
+          respostaCallMeBot.on('end', () => {
+            console.log('CallMeBot:', dadosRetorno);
+            responderJson(res, 200, { ok: true, resposta: dadosRetorno });
+          });
+        }).on('error', (erro) => {
+          // Erro de rede/chamada externa.
+          console.error('Erro CallMeBot:', erro.message);
           responderJson(res, 500, { erro: 'Falha ao contatar o CallMeBot.' });
         });
       })
-      .catch(() => responderJson(res, 400, { erro: 'Corpo JSON invalido.' }));
+      .catch(() => {
+        responderJson(res, 400, { erro: 'Corpo JSON invalido.' });
+      });
     return;
   }
 
-  // POST /api/login
-  if (req.method === 'POST' && urlObj.pathname === '/api/login') {
+  // Rota: POST /api/login
+  // Valida nome e senha do usuario.
+  if (req.method === 'POST' && urlRequisicao.pathname === '/api/login') {
     lerCorpoJson(req)
-      .then((body) => {
-        const nome = String(body.nome || '').trim();
-        const senha = String(body.senha || '').trim();
+      .then((corpo) => {
+        const nome = String(corpo.nome || '').trim();
+        const senha = String(corpo.senha || '').trim();
 
         if (!nome || !senha) {
           responderJson(res, 400, { erro: 'Informe nome e senha.' });
           return;
         }
 
-        db.get(
+        // Busca combinacao exata de nome e senha.
+        banco.get(
           'SELECT id, nome, local FROM usuarios WHERE nome = ? AND senha = ?',
           [nome, senha],
           (erro, usuario) => {
@@ -254,20 +310,25 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Arquivos do front-end.
-  const requestedPath = urlObj.pathname === '/' ? '/index.html' : urlObj.pathname;
-  const filePath = path.normalize(path.join(__dirname, requestedPath));
+  // Se nao caiu em nenhuma rota de API, tenta servir arquivo estatico do front-end.
+  // Quando a rota e '/', devolve a pagina inicial.
+  const caminhoSolicitado = urlRequisicao.pathname === '/' ? '/index.html' : urlRequisicao.pathname;
 
-  if (!filePath.startsWith(__dirname)) {
+  // Normaliza e monta caminho absoluto para evitar inconsistencias.
+  const caminhoArquivo = path.normalize(path.join(__dirname, caminhoSolicitado));
+
+  // Protecao contra "path traversal" (tentativa de acessar arquivos fora do projeto).
+  if (!caminhoArquivo.startsWith(__dirname)) {
     res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
     res.end('Acesso negado.');
     return;
   }
 
-  servirArquivo(res, filePath);
+  // Entrega o arquivo solicitado ao navegador.
+  servirArquivo(res, caminhoArquivo);
 });
 
-// Sobe o servidor local.
-server.listen(port, () => {
-  console.log(`Servidor rodando em http://localhost:${port}`);
+// Inicia o servidor e mostra no terminal em qual endereco ele esta rodando.
+servidor.listen(porta, () => {
+  console.log(`Servidor rodando em http://localhost:${porta}`);
 });
