@@ -562,6 +562,7 @@ async function aoClicarLogin() {
 // Handler do botao de logout da navbar.
 function aoClicarLogout() {
   salvarSessaoUsuario(null);
+  salvarSessaoAdmin(null);
   alert("Sessão encerrada.");
 }
 
