@@ -2,8 +2,11 @@
    Configuracao da aplicacao
    ============================= */
 
-// Se o frontend estiver fora da porta 3000 (ex.: Live Server 5500), usa a API em localhost:3000.
-const API_BASE = window.location.port === "3000" ? "" : "http://localhost:3000";
+// Em producao (Render), usa mesma origem. Em dev fora da porta 3000, usa localhost:3000.
+const estaEmAmbienteLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+const API_BASE = estaEmAmbienteLocal && window.location.port !== "3000"
+  ? "http://localhost:3000"
+  : "";
 
 // Chave usada para manter o usuario logado no navegador.
 const STORAGE_USUARIO = "sos_anjo_usuario_logado";

@@ -20,9 +20,12 @@ const bcrypt = require('bcryptjs');
 // Porta do servidor: usa a variavel de ambiente PORT se existir, senao 3000.
 const porta = process.env.PORT || 3000;
 
-// Define onde o banco ficara salvo dentro do projeto.
-const pastaBanco = path.join(__dirname, 'data');
-const caminhoBanco = path.join(pastaBanco, 'sos-anjo.db');
+// Define onde o banco ficara salvo.
+// Em producao (Render), pode usar DB_PATH para apontar para um disco persistente.
+const caminhoBanco = process.env.DB_PATH
+  ? path.resolve(process.env.DB_PATH)
+  : path.join(__dirname, 'data', 'sos-anjo.db');
+const pastaBanco = path.dirname(caminhoBanco);
 
 // Garante que a pasta do banco exista antes de abrir/criar o arquivo .db.
 fs.mkdirSync(pastaBanco, { recursive: true });
@@ -212,8 +215,11 @@ function servirArquivo(res, caminhoArquivo) {
 
 // Cria o servidor HTTP principal da aplicacao.
 const servidor = http.createServer((req, res) => {
+  const protocolo = req.headers['x-forwarded-proto'] || 'http';
+  const host = req.headers.host || `localhost:${porta}`;
+
   // Monta um objeto URL completo para facilitar a leitura da rota e parametros.
-  const urlRequisicao = new URL(req.url, `http://${req.headers.host}`);
+  const urlRequisicao = new URL(req.url, `${protocolo}://${host}`);
 
   // Verifica se a rota e de API (/api/...) para aplicar CORS apenas nela.
   const ehApi = urlRequisicao.pathname.startsWith('/api/');
@@ -229,6 +235,16 @@ const servidor = http.createServer((req, res) => {
   if (req.method === 'OPTIONS' && ehApi) {
     res.writeHead(204);
     res.end();
+    return;
+  }
+
+  // Rota: GET /api/health
+  // Endpoint simples para monitoramento em producao.
+  if (req.method === 'GET' && urlRequisicao.pathname === '/api/health') {
+    responderJson(res, 200, {
+      ok: true,
+      ambiente: process.env.NODE_ENV || 'development',
+    });
     return;
   }
 
@@ -832,4 +848,11 @@ const servidor = http.createServer((req, res) => {
 // Inicia o servidor e mostra no terminal em qual endereco ele esta rodando.
 servidor.listen(porta, () => {
   console.log(`Servidor rodando em http://localhost:${porta}`);
+});
+
+// Em hospedagem gerenciada, fecha conexao com banco ao receber sinal de desligamento.
+process.on('SIGTERM', () => {
+  banco.close(() => {
+    process.exit(0);
+  });
 });
