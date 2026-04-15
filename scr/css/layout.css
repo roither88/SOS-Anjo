@@ -80,6 +80,126 @@
     width: min(640px, 100%);
 }
 
+.container-admin {
+    justify-content: center;
+}
+
+.painel-admin {
+    width: min(920px, 100%);
+    gap: 14px;
+}
+
+.admin-titulo {
+    font-size: 30px;
+    letter-spacing: 1px;
+    color: #f7d072;
+    text-shadow: 0 0 16px rgba(255, 190, 65, 0.2);
+}
+
+.admin-aviso {
+    min-height: 24px;
+    padding: 8px 10px;
+    border-radius: 4px;
+    border: 1px solid #444;
+    background: rgba(15, 15, 15, 0.7);
+    color: #d9d9d9;
+    font-size: 14px;
+    letter-spacing: 0.4px;
+}
+
+.admin-aviso.erro {
+    color: #ffb1b1;
+    border-color: #7a2f2f;
+    background: rgba(80, 10, 10, 0.35);
+}
+
+.admin-aviso.sucesso {
+    color: #c9ffc0;
+    border-color: #2e6f31;
+    background: rgba(15, 70, 20, 0.35);
+}
+
+.admin-bloco {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.oculto {
+    display: none;
+}
+
+.admin-topo-lista {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.admin-usuario-logado {
+    font-size: 15px;
+    color: #ffdf99;
+}
+
+.admin-subtitulo {
+    margin-top: 18px;
+    margin-bottom: 10px;
+    font-size: 18px;
+    letter-spacing: 0.6px;
+    color: #f2d798;
+}
+
+.admin-acoes {
+    display: flex;
+    gap: 8px;
+}
+
+.admin-tabela-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid #333;
+    border-radius: 6px;
+    background: #0e0e0e;
+}
+
+.admin-tabela {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 560px;
+}
+
+.admin-tabela th,
+.admin-tabela td {
+    text-align: left;
+    padding: 12px 10px;
+    border-bottom: 1px solid #2a2a2a;
+    font-size: 14px;
+}
+
+.admin-tabela th {
+    color: #f0c86a;
+    letter-spacing: 0.8px;
+    background: #161616;
+}
+
+.admin-tabela td {
+    color: #efefef;
+}
+
+.admin-acao-perfil {
+    height: 30px;
+    padding: 0 10px;
+    font-size: 12px;
+    letter-spacing: 0.8px;
+}
+
+.admin-acoes-linha {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
 .painel-esquerdo {
     flex: 0 0 55%;
     display: flex;
@@ -136,6 +256,16 @@
         padding: 180px 16px 30px;
         flex-direction: column;
         align-items: stretch;
+    }
+
+    .admin-topo-lista {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .admin-acoes {
+        width: 100%;
+        flex-wrap: wrap;
     }
 
     .container-principal {

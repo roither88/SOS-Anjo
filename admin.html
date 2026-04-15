@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="scr/css/main.css">
+    <title>Painel Administrativo - SOS-Anjo</title>
+</head>
+
+<body>
+
+    <div class="faixa-alerta"></div>
+
+    <nav class="navbar-topo">
+        <div class="navbar-esquerda">
+            <strong>SOS-Anjo</strong>
+            <span id="statusLogin" class="status-login">Não logado</span>
+        </div>
+        <div class="navbar-direita">
+            <button id="btnIrInicio" class="botao-navbar secundario">VOLTAR INÍCIO</button>
+            <button id="btnIrCadastro" class="botao-navbar secundario">IR PARA CADASTRO</button>
+        </div>
+    </nav>
+
+    <div class="container container-admin">
+        <div class="painel-direito painel-admin">
+            <h1 class="admin-titulo">Painel de Administração</h1>
+            <p id="adminAviso" class="admin-aviso"></p>
+
+            <section id="adminBlocoCriacao" class="login-box admin-bloco oculto">
+                <span class="campo-titulo">Criar primeiro administrador</span>
+
+                <div class="campo">
+                    <div class="input-wrapper">
+                        <span class="icone">&#128100;</span>
+                        <span class="campo-label">Nome:</span>
+                        <input type="text" id="adminCriarNome" placeholder="Nome do administrador">
+                    </div>
+                </div>
+
+                <div class="campo">
+                    <div class="input-wrapper">
+                        <span class="icone">&#128205;</span>
+                        <span class="campo-label">Local:</span>
+                        <input type="text" id="adminCriarLocal" placeholder="Ex.: Sala de controle">
+                    </div>
+                </div>
+
+                <div class="campo">
+                    <div class="input-wrapper">
+                        <span class="icone">&#128274;</span>
+                        <span class="campo-label">Senha:</span>
+                        <input type="password" id="adminCriarSenha" placeholder="Defina a senha admin">
+                    </div>
+                </div>
+
+                <button id="btnCriarAdmin" class="botao-entrar">CRIAR ADMINISTRADOR</button>
+            </section>
+
+            <section id="adminBlocoLogin" class="login-box admin-bloco oculto">
+                <span class="campo-titulo">Login de administrador</span>
+
+                <div class="campo">
+                    <div class="input-wrapper">
+                        <span class="icone">&#128100;</span>
+                        <span class="campo-label">Nome:</span>
+                        <input type="text" id="adminLoginNome" placeholder="Nome de login admin">
+                    </div>
+                </div>
+
+                <div class="campo">
+                    <div class="input-wrapper">
+                        <span class="icone">&#128274;</span>
+                        <span class="campo-label">Senha:</span>
+                        <input type="password" id="adminLoginSenha" placeholder="Senha de administrador">
+                    </div>
+                </div>
+
+                <button id="btnAdminLogin" class="botao-entrar">ENTRAR NO PAINEL</button>
+            </section>
+
+            <section id="adminPainel" class="admin-bloco oculto">
+                <div class="admin-topo-lista">
+                    <p id="adminUsuarioLogado" class="admin-usuario-logado"></p>
+                    <div class="admin-acoes">
+                        <button id="btnAdminAtualizar" class="botao-navbar">ATUALIZAR</button>
+                        <button id="btnAdminLogout" class="botao-navbar secundario">SAIR DO PAINEL</button>
+                    </div>
+                </div>
+
+                <div class="admin-tabela-wrapper">
+                    <table class="admin-tabela">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nome</th>
+                                <th>Local</th>
+                                <th>Perfil</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminTabelaCorpo"></tbody>
+                    </table>
+                </div>
+
+                <h2 class="admin-subtitulo">Ultimos logs do botao de emergencia</h2>
+                <div class="admin-tabela-wrapper">
+                    <table class="admin-tabela admin-tabela-logs">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Usuario</th>
+                                <th>Local</th>
+                                <th>Data/Hora</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminLogsCorpo"></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script src="scr/js/main.js"></script>
+</body>
+
+</html>

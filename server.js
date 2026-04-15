@@ -15,6 +15,7 @@ const { URL } = require('url');
 
 // Driver SQLite para Node.js (verbose mostra logs de depuracao mais detalhados).
 const sqlite3 = require('sqlite3').verbose();
+const bcrypt = require('bcryptjs');
 
 // Porta do servidor: usa a variavel de ambiente PORT se existir, senao 3000.
 const porta = process.env.PORT || 3000;
@@ -28,6 +29,30 @@ fs.mkdirSync(pastaBanco, { recursive: true });
 
 // Abre (ou cria) o banco SQLite no caminho definido acima.
 const banco = new sqlite3.Database(caminhoBanco);
+const SALT_ROUNDS = 10;
+
+// Detecta hash bcrypt para manter compatibilidade com registros antigos.
+function ehHashBcrypt(valor) {
+  return typeof valor === 'string' && /^\$2[aby]\$\d{2}\$/.test(valor);
+}
+
+// Gera hash de senha com bcrypt.
+function gerarHashSenha(senhaTexto) {
+  return bcrypt.hashSync(senhaTexto, SALT_ROUNDS);
+}
+
+// Valida senha contra hash bcrypt; aceita legado em texto puro e permite migracao.
+function validarSenha(senhaInformada, senhaSalva) {
+  if (!senhaSalva) {
+    return false;
+  }
+
+  if (ehHashBcrypt(senhaSalva)) {
+    return bcrypt.compareSync(senhaInformada, senhaSalva);
+  }
+
+  return senhaInformada === senhaSalva;
+}
 
 // Executa comandos de inicializacao do banco em sequencia.
 banco.serialize(() => {
@@ -37,10 +62,63 @@ banco.serialize(() => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       nome TEXT NOT NULL UNIQUE,
       local TEXT,
-      senha TEXT
+      senha TEXT,
+      admin INTEGER NOT NULL DEFAULT 0
+    )
+  `);
+
+  // Em bancos antigos, adiciona a coluna admin caso ela ainda nao exista.
+  banco.all('PRAGMA table_info(usuarios)', (erro, colunas) => {
+    if (erro || !Array.isArray(colunas)) {
+      console.error('Falha ao verificar estrutura da tabela usuarios:', erro);
+      return;
+    }
+
+    const existeColunaAdmin = colunas.some((coluna) => coluna.name === 'admin');
+    if (!existeColunaAdmin) {
+      banco.run('ALTER TABLE usuarios ADD COLUMN admin INTEGER NOT NULL DEFAULT 0', (erroAlter) => {
+        if (erroAlter) {
+          console.error('Falha ao adicionar coluna admin:', erroAlter.message);
+          return;
+        }
+
+        console.log('Coluna admin adicionada na tabela usuarios.');
+      });
+    }
+  });
+
+  // Tabela de logs para registrar quem acionou o botao de emergencia.
+  banco.run(`
+    CREATE TABLE IF NOT EXISTS alerta_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      usuario_nome TEXT NOT NULL,
+      usuario_local TEXT,
+      data_hora TEXT NOT NULL,
+      status TEXT NOT NULL,
+      detalhe TEXT
     )
   `);
 });
+
+// Registra eventos de alerta no banco para consulta no painel administrativo.
+function registrarLogAlerta({ usuarioNome, usuarioLocal, status, detalhe }) {
+  banco.run(
+    `INSERT INTO alerta_logs (usuario_nome, usuario_local, data_hora, status, detalhe)
+     VALUES (?, ?, ?, ?, ?)`,
+    [
+      String(usuarioNome || 'Nao informado').trim(),
+      usuarioLocal ? String(usuarioLocal).trim() : null,
+      new Date().toISOString(),
+      String(status || 'desconhecido').trim(),
+      detalhe ? String(detalhe).trim() : null,
+    ],
+    (erro) => {
+      if (erro) {
+        console.error('Falha ao gravar log de alerta:', erro.message);
+      }
+    }
+  );
+}
 
 // Mapeamento de extensao de arquivo para tipo MIME (cabecalho Content-Type).
 const tiposMime = {
@@ -60,12 +138,12 @@ const tiposMime = {
 // codigoStatus: ex. 200, 400, 500
 // payload: objeto JavaScript que sera convertido para JSON
 function responderJson(res, codigoStatus, payload) {
-  const corpo = JSON.stringify(payload);
+  const corpo = JSON.stringify(payload); // stringify Transforma o objeto JavaScript (payload) em texto JSON.
 
   // Define cabecalhos importantes da resposta.
-  res.writeHead(codigoStatus, {
-    'Content-Type': 'application/json; charset=utf-8',
-    'Content-Length': Buffer.byteLength(corpo),
+  res.writeHead(codigoStatus, {  
+    'Content-Type': 'application/json; charset=utf-8', //informa que a resposta é JSON em UTF-8.
+    'Content-Length': Buffer.byteLength(corpo), //Calcula quantos bytes a string corpo ocupa de verdade.
   });
 
   // Finaliza enviando o JSON serializado.
@@ -195,6 +273,7 @@ const servidor = http.createServer((req, res) => {
         const nome = String(corpo.nome || '').trim();
         const local = corpo.local ? String(corpo.local).trim() : null;
         const senha = corpo.senha ? String(corpo.senha).trim() : null;
+        const senhaHash = senha ? gerarHashSenha(senha) : null;
 
         if (!nome) {
           responderJson(res, 400, { erro: 'Informe o nome do usuario.' });
@@ -204,7 +283,7 @@ const servidor = http.createServer((req, res) => {
         // Insere registro na tabela usuarios.
         banco.run(
           'INSERT INTO usuarios (nome, local, senha) VALUES (?, ?, ?)',
-          [nome, local, senha],
+          [nome, local, senhaHash],
           function (erro) {
             if (erro) {
               responderJson(res, 500, { erro: 'Nao foi possivel salvar o usuario.' });
@@ -272,6 +351,60 @@ const servidor = http.createServer((req, res) => {
     return;
   }
 
+  // Rota: GET /api/admin/logs-alerta?limit=20
+  // Retorna os ultimos logs de acionamento do botao de emergencia.
+  if (req.method === 'GET' && urlRequisicao.pathname === '/api/admin/logs-alerta') {
+    const limiteBruto = Number(urlRequisicao.searchParams.get('limit') || 20);
+    const limite = Number.isInteger(limiteBruto) && limiteBruto > 0
+      ? Math.min(limiteBruto, 100)
+      : 20;
+
+    banco.all(
+      `SELECT id, usuario_nome, usuario_local, data_hora, status, detalhe
+       FROM alerta_logs
+       ORDER BY id DESC
+       LIMIT ?`,
+      [limite],
+      (erro, logs) => {
+        if (erro) {
+          responderJson(res, 500, { erro: 'Erro ao listar logs de alerta.' });
+          return;
+        }
+
+        responderJson(res, 200, {
+          total: Array.isArray(logs) ? logs.length : 0,
+          logs: logs || [],
+        });
+      }
+    );
+    return;
+  }
+
+  // Rota: POST /api/alerta/evento
+  // Registra eventos de interface (clique no botao de emergencia/desativar alerta).
+  if (req.method === 'POST' && urlRequisicao.pathname === '/api/alerta/evento') {
+    lerCorpoJson(req)
+      .then((corpo) => {
+        const usuarioNome = String(corpo.usuarioNome || '').trim() || 'Nao informado';
+        const usuarioLocal = String(corpo.usuarioLocal || '').trim() || null;
+        const status = String(corpo.status || '').trim() || 'evento';
+        const detalhe = String(corpo.detalhe || '').trim() || null;
+
+        registrarLogAlerta({
+          usuarioNome,
+          usuarioLocal,
+          status,
+          detalhe,
+        });
+
+        responderJson(res, 201, { ok: true });
+      })
+      .catch(() => {
+        responderJson(res, 400, { erro: 'Corpo JSON invalido.' });
+      });
+    return;
+  }
+
   // Rota: POST /api/login
   // Valida nome e senha do usuario.
   if (req.method === 'POST' && urlRequisicao.pathname === '/api/login') {
@@ -285,24 +418,392 @@ const servidor = http.createServer((req, res) => {
           return;
         }
 
-        // Busca combinacao exata de nome e senha.
+        // Busca por nome e valida senha com bcrypt (ou formato antigo em texto puro).
         banco.get(
-          'SELECT id, nome, local FROM usuarios WHERE nome = ? AND senha = ?',
-          [nome, senha],
+          'SELECT id, nome, local, admin, senha FROM usuarios WHERE nome = ?',
+          [nome],
           (erro, usuario) => {
             if (erro) {
               responderJson(res, 500, { erro: 'Erro ao consultar o banco.' });
               return;
             }
 
-            if (!usuario) {
+            if (!usuario || !validarSenha(senha, usuario.senha)) {
               responderJson(res, 401, { erro: 'Nome ou senha invalidos.' });
               return;
             }
 
-            responderJson(res, 200, usuario);
+            // Migra senha antiga (texto puro) para hash no primeiro login valido.
+            if (usuario.senha && !ehHashBcrypt(usuario.senha)) {
+              const novoHash = gerarHashSenha(senha);
+              banco.run('UPDATE usuarios SET senha = ? WHERE id = ?', [novoHash, usuario.id]);
+            }
+
+            responderJson(res, 200, {
+              id: usuario.id,
+              nome: usuario.nome,
+              local: usuario.local,
+              admin: Number(usuario.admin) === 1 ? 1 : 0,
+            });
           }
         );
+      })
+      .catch(() => {
+        responderJson(res, 400, { erro: 'Corpo JSON invalido.' });
+      });
+    return;
+  }
+
+  // Rota: GET /api/admin/status
+  // Informa se ja existe ao menos um usuario administrador.
+  if (req.method === 'GET' && urlRequisicao.pathname === '/api/admin/status') {
+    banco.get(
+      'SELECT COUNT(*) AS total FROM usuarios WHERE admin = 1',
+      [],
+      (erro, linha) => {
+        if (erro) {
+          responderJson(res, 500, { erro: 'Erro ao consultar administradores.' });
+          return;
+        }
+
+        const totalAdmins = Number((linha && linha.total) || 0);
+        responderJson(res, 200, {
+          temAdmin: totalAdmins > 0,
+          totalAdmins,
+        });
+      }
+    );
+    return;
+  }
+
+  // Rota: POST /api/admin/criar-inicial
+  // Cria o primeiro admin apenas quando nao existe nenhum administrador.
+  if (req.method === 'POST' && urlRequisicao.pathname === '/api/admin/criar-inicial') {
+    lerCorpoJson(req)
+      .then((corpo) => {
+        const nome = String(corpo.nome || '').trim();
+        const local = corpo.local ? String(corpo.local).trim() : null;
+        const senha = String(corpo.senha || '').trim();
+        const senhaHash = senha ? gerarHashSenha(senha) : '';
+
+        if (!nome || !senha) {
+          responderJson(res, 400, { erro: 'Informe nome e senha do administrador.' });
+          return;
+        }
+
+        banco.get('SELECT COUNT(*) AS total FROM usuarios WHERE admin = 1', [], (erroCount, linha) => {
+          if (erroCount) {
+            responderJson(res, 500, { erro: 'Erro ao validar administradores existentes.' });
+            return;
+          }
+
+          const totalAdmins = Number((linha && linha.total) || 0);
+          if (totalAdmins > 0) {
+            responderJson(res, 409, { erro: 'Ja existe administrador cadastrado.' });
+            return;
+          }
+
+          banco.run(
+            'INSERT INTO usuarios (nome, local, senha, admin) VALUES (?, ?, ?, 1)',
+            [nome, local, senhaHash],
+            function (erroInsert) {
+              if (erroInsert) {
+                responderJson(res, 500, { erro: 'Nao foi possivel criar o administrador.' });
+                return;
+              }
+
+              responderJson(res, 201, {
+                id: this.lastID,
+                nome,
+                local,
+                admin: 1,
+              });
+            }
+          );
+        });
+      })
+      .catch(() => {
+        responderJson(res, 400, { erro: 'Corpo JSON invalido.' });
+      });
+    return;
+  }
+
+  // Rota: POST /api/admin/login
+  // Autentica apenas usuarios com permissao de administrador.
+  if (req.method === 'POST' && urlRequisicao.pathname === '/api/admin/login') {
+    lerCorpoJson(req)
+      .then((corpo) => {
+        const nome = String(corpo.nome || '').trim();
+        const senha = String(corpo.senha || '').trim();
+
+        if (!nome || !senha) {
+          responderJson(res, 400, { erro: 'Informe nome e senha.' });
+          return;
+        }
+
+        banco.get(
+          'SELECT id, nome, local, admin, senha FROM usuarios WHERE nome = ? AND admin = 1',
+          [nome],
+          (erro, usuario) => {
+            if (erro) {
+              responderJson(res, 500, { erro: 'Erro ao consultar o banco.' });
+              return;
+            }
+
+            if (!usuario || !validarSenha(senha, usuario.senha)) {
+              responderJson(res, 401, { erro: 'Credenciais invalidas ou sem permissao de administrador.' });
+              return;
+            }
+
+            // Migra senha antiga (texto puro) para hash no primeiro login admin valido.
+            if (usuario.senha && !ehHashBcrypt(usuario.senha)) {
+              const novoHash = gerarHashSenha(senha);
+              banco.run('UPDATE usuarios SET senha = ? WHERE id = ?', [novoHash, usuario.id]);
+            }
+
+            responderJson(res, 200, {
+              id: usuario.id,
+              nome: usuario.nome,
+              local: usuario.local,
+              admin: Number(usuario.admin) === 1 ? 1 : 0,
+            });
+          }
+        );
+      })
+      .catch(() => {
+        responderJson(res, 400, { erro: 'Corpo JSON invalido.' });
+      });
+    return;
+  }
+
+  // Rota: GET /api/admin/usuarios
+  // Lista usuarios para exibir no painel administrativo.
+  if (req.method === 'GET' && urlRequisicao.pathname === '/api/admin/usuarios') {
+    banco.all(
+      'SELECT id, nome, local, admin FROM usuarios ORDER BY nome COLLATE NOCASE ASC',
+      [],
+      (erro, usuarios) => {
+        if (erro) {
+          responderJson(res, 500, { erro: 'Erro ao listar usuarios.' });
+          return;
+        }
+
+        responderJson(res, 200, {
+          total: Array.isArray(usuarios) ? usuarios.length : 0,
+          usuarios: usuarios || [],
+        });
+      }
+    );
+    return;
+  }
+
+  // Rota: POST /api/admin/usuario/perfil
+  // Promove ou rebaixa um usuario no campo admin (1 = admin, 0 = comum).
+  if (req.method === 'POST' && urlRequisicao.pathname === '/api/admin/usuario/perfil') {
+    lerCorpoJson(req)
+      .then((corpo) => {
+        const usuarioId = Number(corpo.id);
+        const novoAdmin = Number(corpo.admin) === 1 ? 1 : 0;
+
+        if (!Number.isInteger(usuarioId) || usuarioId <= 0) {
+          responderJson(res, 400, { erro: 'Informe um id de usuario valido.' });
+          return;
+        }
+
+        banco.get('SELECT id, admin FROM usuarios WHERE id = ?', [usuarioId], (erroBusca, usuarioAlvo) => {
+          if (erroBusca) {
+            responderJson(res, 500, { erro: 'Erro ao consultar usuario.' });
+            return;
+          }
+
+          if (!usuarioAlvo) {
+            responderJson(res, 404, { erro: 'Usuario nao encontrado.' });
+            return;
+          }
+
+          if (Number(usuarioAlvo.admin) === novoAdmin) {
+            responderJson(res, 200, {
+              id: usuarioId,
+              admin: novoAdmin,
+              mensagem: 'Perfil ja estava atualizado.',
+            });
+            return;
+          }
+
+          const concluirAtualizacao = () => {
+            banco.run(
+              'UPDATE usuarios SET admin = ? WHERE id = ?',
+              [novoAdmin, usuarioId],
+              function (erroUpdate) {
+                if (erroUpdate) {
+                  responderJson(res, 500, { erro: 'Nao foi possivel atualizar o perfil.' });
+                  return;
+                }
+
+                responderJson(res, 200, {
+                  id: usuarioId,
+                  admin: novoAdmin,
+                  mensagem: novoAdmin === 1 ? 'Usuario promovido para administrador.' : 'Usuario rebaixado para perfil comum.',
+                });
+              }
+            );
+          };
+
+          // Protege o sistema para nunca ficar sem nenhum admin.
+          if (Number(usuarioAlvo.admin) === 1 && novoAdmin === 0) {
+            banco.get('SELECT COUNT(*) AS total FROM usuarios WHERE admin = 1', [], (erroCount, linha) => {
+              if (erroCount) {
+                responderJson(res, 500, { erro: 'Erro ao validar quantidade de administradores.' });
+                return;
+              }
+
+              const totalAdmins = Number((linha && linha.total) || 0);
+              if (totalAdmins <= 1) {
+                responderJson(res, 409, { erro: 'Nao e permitido remover o ultimo administrador do sistema.' });
+                return;
+              }
+
+              concluirAtualizacao();
+            });
+            return;
+          }
+
+          concluirAtualizacao();
+        });
+      })
+      .catch(() => {
+        responderJson(res, 400, { erro: 'Corpo JSON invalido.' });
+      });
+    return;
+  }
+
+  // Rota: POST /api/admin/usuario/atualizar
+  // Atualiza nome, local e opcionalmente senha de um usuario.
+  if (req.method === 'POST' && urlRequisicao.pathname === '/api/admin/usuario/atualizar') {
+    lerCorpoJson(req)
+      .then((corpo) => {
+        const usuarioId = Number(corpo.id);
+        const nome = String(corpo.nome || '').trim();
+        const local = corpo.local ? String(corpo.local).trim() : null;
+        const senha = corpo.senha ? String(corpo.senha).trim() : '';
+
+        if (!Number.isInteger(usuarioId) || usuarioId <= 0) {
+          responderJson(res, 400, { erro: 'Informe um id de usuario valido.' });
+          return;
+        }
+
+        if (!nome) {
+          responderJson(res, 400, { erro: 'Informe um nome valido para o usuario.' });
+          return;
+        }
+
+        const senhaHash = senha ? gerarHashSenha(senha) : null;
+
+        const concluirAtualizacao = () => {
+          banco.get('SELECT id FROM usuarios WHERE id = ?', [usuarioId], (erroBusca, usuario) => {
+            if (erroBusca) {
+              responderJson(res, 500, { erro: 'Erro ao consultar usuario.' });
+              return;
+            }
+
+            if (!usuario) {
+              responderJson(res, 404, { erro: 'Usuario nao encontrado.' });
+              return;
+            }
+
+            const sql = senhaHash
+              ? 'UPDATE usuarios SET nome = ?, local = ?, senha = ? WHERE id = ?'
+              : 'UPDATE usuarios SET nome = ?, local = ? WHERE id = ?';
+            const params = senhaHash
+              ? [nome, local, senhaHash, usuarioId]
+              : [nome, local, usuarioId];
+
+            banco.run(sql, params, function (erroUpdate) {
+              if (erroUpdate) {
+                if (erroUpdate.code === 'SQLITE_CONSTRAINT') {
+                  responderJson(res, 409, { erro: 'Ja existe usuario com este nome.' });
+                  return;
+                }
+
+                responderJson(res, 500, { erro: 'Nao foi possivel atualizar o usuario.' });
+                return;
+              }
+
+              responderJson(res, 200, {
+                id: usuarioId,
+                nome,
+                local,
+                mensagem: 'Usuario atualizado com sucesso.',
+              });
+            });
+          });
+        };
+
+        concluirAtualizacao();
+      })
+      .catch(() => {
+        responderJson(res, 400, { erro: 'Corpo JSON invalido.' });
+      });
+    return;
+  }
+
+  // Rota: POST /api/admin/usuario/remover
+  // Remove usuario por id com protecao para nao remover o ultimo admin.
+  if (req.method === 'POST' && urlRequisicao.pathname === '/api/admin/usuario/remover') {
+    lerCorpoJson(req)
+      .then((corpo) => {
+        const usuarioId = Number(corpo.id);
+
+        if (!Number.isInteger(usuarioId) || usuarioId <= 0) {
+          responderJson(res, 400, { erro: 'Informe um id de usuario valido.' });
+          return;
+        }
+
+        banco.get('SELECT id, admin FROM usuarios WHERE id = ?', [usuarioId], (erroBusca, usuarioAlvo) => {
+          if (erroBusca) {
+            responderJson(res, 500, { erro: 'Erro ao consultar usuario.' });
+            return;
+          }
+
+          if (!usuarioAlvo) {
+            responderJson(res, 404, { erro: 'Usuario nao encontrado.' });
+            return;
+          }
+
+          const concluirRemocao = () => {
+            banco.run('DELETE FROM usuarios WHERE id = ?', [usuarioId], function (erroDelete) {
+              if (erroDelete) {
+                responderJson(res, 500, { erro: 'Nao foi possivel remover o usuario.' });
+                return;
+              }
+
+              responderJson(res, 200, {
+                id: usuarioId,
+                mensagem: 'Usuario removido com sucesso.',
+              });
+            });
+          };
+
+          if (Number(usuarioAlvo.admin) === 1) {
+            banco.get('SELECT COUNT(*) AS total FROM usuarios WHERE admin = 1', [], (erroCount, linha) => {
+              if (erroCount) {
+                responderJson(res, 500, { erro: 'Erro ao validar quantidade de administradores.' });
+                return;
+              }
+
+              const totalAdmins = Number((linha && linha.total) || 0);
+              if (totalAdmins <= 1) {
+                responderJson(res, 409, { erro: 'Nao e permitido remover o ultimo administrador do sistema.' });
+                return;
+              }
+
+              concluirRemocao();
+            });
+            return;
+          }
+
+          concluirRemocao();
+        });
       })
       .catch(() => {
         responderJson(res, 400, { erro: 'Corpo JSON invalido.' });
