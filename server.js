@@ -626,9 +626,10 @@ const servidor = http.createServer((req, res) => {
           detalhe,
         });
 
-        // Se o status é de emergência, cria um alerta ativo
+        // Se o status é de emergência E o usuario está autenticado, cria um alerta ativo
+        const usuarioAutenticado = usuarioNome !== 'Nao informado' && usuarioNome !== 'Nao autenticado';
         const statusUpper = status.toUpperCase();
-        if (statusUpper.includes('EMERGENCIA') || statusUpper.includes('ALERTA') || statusUpper.includes('BOTAO_EMERGENCIA')) {
+        if (usuarioAutenticado && (statusUpper.includes('EMERGENCIA') || statusUpper.includes('ALERTA') || statusUpper.includes('BOTAO_EMERGENCIA'))) {
           banco.run(
             `INSERT INTO alertas_ativos (usuario_nome, usuario_local, data_hora, ativo)
              VALUES (?, ?, ?, 1)`,

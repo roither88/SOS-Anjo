@@ -151,7 +151,7 @@ function atualizarStatusLogin() {
   }
 
   if (usuarioLogado) {
-    statusLogin.textContent = `Logado: ${usuarioLogado.nome}`;
+    statusLogin.textContent = `Logado: Anjo ${usuarioLogado.nome}`;
     statusLogin.classList.add("ativo");
     return;
   }
@@ -855,7 +855,7 @@ async function atualizarPainelAdmin() {
   }
 
   if (adminUsuarioLogado) {
-    adminUsuarioLogado.textContent = `Administrador logado: ${adminLogado.nome}`;
+    adminUsuarioLogado.textContent = `Administrador logado: Anjo ${adminLogado.nome}`;
   }
 
   mostrarAvisoAdmin("Painel atualizado.", "sucesso");

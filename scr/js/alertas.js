@@ -7,6 +7,9 @@ const API_BASE = estaEmAmbienteLocal && window.location.port !== "3000"
   ? "http://localhost:3000"
   : "";
 
+// Elemento de áudio para tocar o alerta
+let audioAlerta = null;
+
 /* =============================
    Referencias de elementos DOM
    ============================= */
@@ -31,7 +34,7 @@ function atualizarStatusLogin() {
     
     if (statusLogin) {
       if (usuarioObj && usuarioObj.nome) {
-        statusLogin.textContent = `Logado: ${usuarioObj.nome}`;
+        statusLogin.textContent = `Logado: Anjo ${usuarioObj.nome}`;
       } else {
         statusLogin.textContent = "Não logado";
       }
@@ -39,6 +42,92 @@ function atualizarStatusLogin() {
   } catch (e) {
     if (statusLogin) {
       statusLogin.textContent = "Não logado";
+    }
+  }
+}
+
+// Inicia reprodução do áudio de alerta em loop
+function iniciarAudio() {
+  if (!audioAlerta) {
+    audioAlerta = new Audio("scr/audios/alerta.wav");
+    audioAlerta.loop = true;
+    audioAlerta.volume = 1;
+  }
+  
+  // Tenta reproduzir o arquivo de áudio
+  const promisePlay = audioAlerta.play();
+  if (promisePlay !== undefined) {
+    promisePlay.catch((erro) => {
+      console.warn("Não foi possível reproduzir scr/audios/alerta.wav, usando tom de alerta alternativo");
+      // Se o arquivo não existir, usa a Web Audio API para gerar um tom
+      gerarTomAlerta();
+    });
+  }
+}
+
+// Gera um tom de alerta usando Web Audio API (fallback)
+function gerarTomAlerta() {
+  try {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    
+    // Cria osciladores para gerar um som de alerta
+    const oscilador = audioContext.createOscillator();
+    const ganho = audioContext.createGain();
+    
+    oscilador.connect(ganho);
+    ganho.connect(audioContext.destination);
+    
+    // Frequência e volume iniciais
+    oscilador.frequency.value = 800;
+    ganho.gain.setValueAtTime(0.3, audioContext.currentTime);
+    
+    oscilador.start();
+    
+    // Cria um padrão: bip-bip-bip a cada 2 segundos
+    let tempoAtual = audioContext.currentTime;
+    const intervalo = setInterval(() => {
+      if (!audioAlerta || (audioAlerta && audioAlerta.paused)) {
+        oscilador.stop();
+        clearInterval(intervalo);
+        return;
+      }
+      
+      tempoAtual = audioContext.currentTime;
+      oscilador.frequency.setValueAtTime(800, tempoAtual);
+      oscilador.frequency.setValueAtTime(600, tempoAtual + 0.2);
+      oscilador.frequency.setValueAtTime(800, tempoAtual + 0.4);
+    }, 2000);
+    
+    // Armazena o intervalo no áudio para poder cancelar depois
+    if (!audioAlerta) audioAlerta = {};
+    audioAlerta._tongerador = intervalo;
+    audioAlerta._oscilador = oscilador;
+  } catch (e) {
+    console.error("Erro ao gerar tom de alerta:", e);
+  }
+}
+
+// Para a reprodução do áudio de alerta
+function pararAudio() {
+  if (audioAlerta) {
+    if (audioAlerta.pause) {
+      audioAlerta.pause();
+      audioAlerta.currentTime = 0;
+    }
+    
+    // Limpa geradores de tom
+    if (audioAlerta._tongerador) {
+      clearInterval(audioAlerta._tongerador);
+      audioAlerta._tongerador = null;
+    }
+    
+    if (audioAlerta._oscilador) {
+      try {
+        audioAlerta._oscilador.stop();
+      } catch (e) {
+        // Oscilador já foi parado
+      }
+      audioAlerta._oscilador = null;
     }
   }
 }
@@ -63,6 +152,13 @@ async function carregarAlertas() {
       if (strong) {
         strong.textContent = alertas.length;
       }
+    }
+
+    // Se houver alertas, toca o áudio
+    if (alertas.length > 0) {
+      iniciarAudio();
+    } else {
+      pararAudio();
     }
 
     // Mostra/esconde container vazio
@@ -196,6 +292,17 @@ if (btnAtualizarAlertas) {
 
 // Ao carregar a página
 document.addEventListener("DOMContentLoaded", () => {
+  // Verifica se o usuário admin está logado
+  const adminLogado = verificarAutenticacaoAdmin();
+  
+  if (!adminLogado) {
+    mostrarMensagem("Acesso negado! Apenas administradores podem acessar este painel.", "erro");
+    setTimeout(() => {
+      window.location.href = "index.html";
+    }, 2000);
+    return;
+  }
+
   atualizarStatusLogin();
   carregarAlertas();
 
@@ -204,3 +311,26 @@ document.addEventListener("DOMContentLoaded", () => {
     carregarAlertas();
   }, 5000);
 });
+
+// Para o áudio quando sair da página
+window.addEventListener("beforeunload", () => {
+  pararAudio();
+});
+
+// Para o áudio quando a aba ficar invisível
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    // Página ficou invisível, pode continuar tocando se quiser
+    // ou parar. Aqui vamos deixar tocando para alertar o usuário
+  }
+});
+
+// Verifica se há admin autenticado
+function verificarAutenticacaoAdmin() {
+  try {
+    const admin = localStorage.getItem("sos_anjo_admin_logado");
+    return admin ? JSON.parse(admin) : null;
+  } catch (e) {
+    return null;
+  }
+}
