@@ -1,0 +1,26 @@
+.btn {
+    padding: 8px 14px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+
+    transition: 0.3s;
+}
+
+.btn.primario {
+    background: var(--primaria);
+    color: #fff;
+}
+
+.btn.primario:hover {
+    background: var(--primaria-forte);
+}
+
+.btn.neutro {
+    background: rgba(255,255,255,0.6);
+    color: var(--texto);
+}
+
+.btn.neutro:hover {
+    transform: scale(1.05);
+}

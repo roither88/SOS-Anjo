@@ -46,6 +46,7 @@ const loginSenha = document.getElementById("loginSenha");
 const btnLogin = document.getElementById("btnLogin");
 const btnLogout = document.getElementById("btnLogout");
 const btnIrCadastro = document.getElementById("btnIrCadastro");
+const btnIrCadastroPainel = document.getElementById("btnIrCadastroPainel");
 const btnIrInicio = document.getElementById("btnIrInicio");
 const btnIrAdmin = document.getElementById("btnIrAdmin");
 const statusLogin = document.getElementById("statusLogin");
@@ -191,6 +192,36 @@ function preencherCamposCallMeBot() {
   if (cmbApiKey)   cmbApiKey.value   = cfg.apikey;
 }
 
+// Carrega a lista de locais cadastrados no backend para preencher o select do cadastro.
+async function carregarLocaisCadastro() {
+  if (!localizacao || localizacao.tagName !== "SELECT") {
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE}/api/locais`);
+    const resultado = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(resultado.erro || "Nao foi possivel carregar os locais.");
+    }
+
+    const locais = Array.isArray(resultado.locais) ? resultado.locais : [];
+    localizacao.innerHTML = '<option value="">Selecione um local</option>';
+
+    locais.forEach((local) => {
+      const option = document.createElement("option");
+      const nomeLocal = String(local.local || local.nome || "").trim();
+      option.value = String(local.id || "").trim();
+      option.textContent = nomeLocal;
+      localizacao.appendChild(option);
+    });
+  } catch (erro) {
+    console.warn("Falha ao carregar locais:", erro.message);
+    localizacao.innerHTML = '<option value="">Selecione um local</option>';
+  }
+}
+
 /* =============================
    Requisicoes HTTP (backend)
    ============================= */
@@ -280,11 +311,16 @@ async function buscarUsuarioNoBanco(nomeUsuario) {
 // Cadastra um novo usuario no banco SQLite via API.
 async function salvarUsuario() {
   const nomeUsuario = valorInput(nome);
-  const localUsuario = valorInput(localizacao);
+  const localIdUsuario = Number(valorInput(localizacao));
   const senhaUsuario = valorInput(senhaCadastro);
 
   if (!nomeUsuario) {
     alert("Informe o nome do usuario.");
+    return;
+  }
+
+  if (!Number.isInteger(localIdUsuario) || localIdUsuario <= 0) {
+    alert("Selecione um local valido.");
     return;
   }
 
@@ -293,7 +329,7 @@ async function salvarUsuario() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       nome: nomeUsuario,
-      local: localUsuario,
+      localId: localIdUsuario,
       senha: senhaUsuario,
     }),
   });
@@ -950,6 +986,10 @@ function registrarEventos() {
     btnIrCadastro.addEventListener("click", aoClicarIrCadastro);
   }
 
+  if (btnIrCadastroPainel) {
+    btnIrCadastroPainel.addEventListener("click", aoClicarIrCadastro);
+  }
+
   if (btnIrInicio) {
     btnIrInicio.addEventListener("click", aoClicarIrInicio);
   }
@@ -982,5 +1022,6 @@ function registrarEventos() {
 // Atualiza a interface com o estado atual e ativa os listeners.
 atualizarStatusLogin();
 preencherCamposCallMeBot();
+carregarLocaisCadastro();
 registrarEventos();
 inicializarPaginaAdmin();

@@ -1,0 +1,78 @@
+.container {
+    height: calc(100vh - 70px);
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* BOTÃO EMERGÊNCIA */
+#btnEmergencia {
+    width: 200px;
+    height: 200px;
+
+    border-radius: 50%;
+    border: none;
+
+    background: radial-gradient(circle, #7fa6d9, #4f7fc0);
+    color: #fff;
+
+    font-size: 20px;
+    font-weight: bold;
+    text-align: center;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 10px 25px rgba(0,0,0,0.15),
+        inset 0 -5px 10px rgba(0,0,0,0.1);
+
+    transition: 0.3s;
+}
+
+#btnEmergencia:hover {
+    transform: scale(1.08);
+}
+
+/* RESPONSIVIDADE */
+
+/* Tablet */
+@media (max-width: 1024px) {
+    #btnEmergencia {
+        width: 160px;
+        height: 160px;
+    }
+}
+
+/* Celular */
+@media (max-width: 768px) {
+    #btnEmergencia {
+        width: 130px;
+        height: 130px;
+        font-size: 14px;
+    }
+}
+
+/* BOTÃO DESATIVAR */
+#btnDesativar {
+    margin-top: 20px;
+
+    padding: 12px 30px;
+
+    border-radius: 12px;
+    border: none;
+
+    background: rgba(255,255,255,0.6);
+    color: var(--texto);
+
+    font-weight: bold;
+    cursor: pointer;
+
+    transition: 0.3s;
+}
+
+#btnDesativar:hover {
+    background: var(--primaria);
+    color: #fff;
+}

@@ -1,0 +1,41 @@
+.topo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    padding: 15px 30px;
+
+    background: rgba(255,255,255,0.4);
+    backdrop-filter: blur(12px);
+
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+}
+
+.logo {
+    font-weight: bold;
+    font-size: 20px;
+    letter-spacing: 1px;
+}
+
+.login-area {
+    display: flex;
+    gap: 10px;
+}
+
+.login-area input {
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: none;
+
+    background: rgba(255,255,255,0.6);
+    color: var(--texto);
+}
+
+.login-area select {
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: none;
+
+    background: rgba(255,255,255,0.6);
+    color: var(--texto);
+}

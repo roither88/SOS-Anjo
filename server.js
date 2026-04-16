@@ -33,6 +33,16 @@ fs.mkdirSync(pastaBanco, { recursive: true });
 // Abre (ou cria) o banco SQLite no caminho definido acima.
 const banco = new sqlite3.Database(caminhoBanco);
 const SALT_ROUNDS = 10;
+const LOCAIS_PADRAO = [
+  'Sala 1',
+  'Sala 2',
+  'Sala 3',
+  'Sala 4',
+  'Sala de controle',
+  'Sala teste',
+  'Sala teste 2',
+  'Local Debug',
+];
 
 // Detecta hash bcrypt para manter compatibilidade com registros antigos.
 function ehHashBcrypt(valor) {
@@ -57,38 +67,121 @@ function validarSenha(senhaInformada, senhaSalva) {
   return senhaInformada === senhaSalva;
 }
 
+// Normaliza entrada textual para evitar espacos sobrando.
+function normalizarTexto(valor) {
+  return String(valor || '').trim();
+}
+
+// Resolve um local por id ou nome. Se criarSeNaoExistir for true, cria o local quando o nome nao existir.
+function obterLocalPorEntrada(entradaLocal, criarSeNaoExistir, callback) {
+  const valor = normalizarTexto(entradaLocal);
+
+  if (!valor) {
+    callback(null, null);
+    return;
+  }
+
+  const localIdNumerico = Number(valor);
+  const entradaEhId = Number.isInteger(localIdNumerico) && localIdNumerico > 0 && String(localIdNumerico) === valor;
+
+  if (entradaEhId) {
+    banco.get('SELECT id, local FROM locais WHERE id = ?', [localIdNumerico], (erro, local) => {
+      if (erro) {
+        callback(erro, null);
+        return;
+      }
+
+      callback(null, local || null);
+    });
+    return;
+  }
+
+  banco.get('SELECT id, local FROM locais WHERE local = ?', [valor], (erro, local) => {
+    if (erro) {
+      callback(erro, null);
+      return;
+    }
+
+    if (local) {
+      callback(null, local);
+      return;
+    }
+
+    if (!criarSeNaoExistir) {
+      callback(null, null);
+      return;
+    }
+
+    banco.run('INSERT INTO locais (local) VALUES (?)', [valor], function (erroInsert) {
+      if (erroInsert) {
+        callback(erroInsert, null);
+        return;
+      }
+
+      callback(null, {
+        id: this.lastID,
+        local: valor,
+      });
+    });
+  });
+}
+
+// Busca usuario com o nome do local ja resolvido via JOIN.
+function buscarUsuarioComLocalPorNome(nome, callback) {
+  banco.get(
+    `SELECT u.id, u.nome, COALESCE(l.local, u.local) AS local, u.admin, u.senha, u.local_id
+     FROM usuarios u
+     LEFT JOIN locais l ON l.id = u.local_id
+     WHERE u.nome = ?`,
+    [nome],
+    callback
+  );
+}
+
+// Lista usuarios com o local resolvido para exibicao no painel.
+function listarUsuariosComLocal(callback) {
+  banco.all(
+    `SELECT u.id, u.nome, COALESCE(l.local, u.local) AS local, u.admin, u.local_id
+     FROM usuarios u
+     LEFT JOIN locais l ON l.id = u.local_id
+     ORDER BY u.nome COLLATE NOCASE ASC`,
+    [],
+    callback
+  );
+}
+
 // Executa comandos de inicializacao do banco em sequencia.
 banco.serialize(() => {
-  // Cria a tabela de usuarios apenas se ela ainda nao existir.
+  // Tabela de locais usada para popular o select de cadastro.
+  banco.run(`
+    CREATE TABLE IF NOT EXISTS locais (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      local TEXT NOT NULL UNIQUE
+    )
+  `);
+
+  // Insere locais padrao sem duplicar os que ja existem.
+  const stmtLocais = banco.prepare('INSERT OR IGNORE INTO locais (local) VALUES (?)');
+  LOCAIS_PADRAO.forEach((nomeLocal) => {
+    stmtLocais.run([String(nomeLocal).trim()]);
+  });
+  stmtLocais.finalize((erroFinalizacao) => {
+    if (erroFinalizacao) {
+      console.error('Falha ao finalizar insercao de locais padrao:', erroFinalizacao.message);
+    }
+  });
+
+  // Cria a tabela de usuarios com a coluna local_id para usar a chave estrangeira.
   banco.run(`
     CREATE TABLE IF NOT EXISTS usuarios (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       nome TEXT NOT NULL UNIQUE,
-      local TEXT,
+      local_id INTEGER,
       senha TEXT,
-      admin INTEGER NOT NULL DEFAULT 0
+      admin INTEGER NOT NULL DEFAULT 0,
+      FOREIGN KEY (local_id) REFERENCES locais(id)
     )
   `);
-
-  // Em bancos antigos, adiciona a coluna admin caso ela ainda nao exista.
-  banco.all('PRAGMA table_info(usuarios)', (erro, colunas) => {
-    if (erro || !Array.isArray(colunas)) {
-      console.error('Falha ao verificar estrutura da tabela usuarios:', erro);
-      return;
-    }
-
-    const existeColunaAdmin = colunas.some((coluna) => coluna.name === 'admin');
-    if (!existeColunaAdmin) {
-      banco.run('ALTER TABLE usuarios ADD COLUMN admin INTEGER NOT NULL DEFAULT 0', (erroAlter) => {
-        if (erroAlter) {
-          console.error('Falha ao adicionar coluna admin:', erroAlter.message);
-          return;
-        }
-
-        console.log('Coluna admin adicionada na tabela usuarios.');
-      });
-    }
-  });
 
   // Tabela de logs para registrar quem acionou o botao de emergencia.
   banco.run(`
@@ -101,6 +194,53 @@ banco.serialize(() => {
       detalhe TEXT
     )
   `);
+
+  // Migra bancos antigos adicionando a coluna local_id e preservando o valor antigo de local.
+  banco.all('PRAGMA table_info(usuarios)', (erro, colunas) => {
+    if (erro || !Array.isArray(colunas)) {
+      console.error('Falha ao verificar estrutura da tabela usuarios:', erro);
+      return;
+    }
+
+    const existeColunaAdmin = colunas.some((coluna) => coluna.name === 'admin');
+    const existeColunaLocalId = colunas.some((coluna) => coluna.name === 'local_id');
+    const existeColunaLocalTexto = colunas.some((coluna) => coluna.name === 'local');
+
+    if (!existeColunaAdmin) {
+      banco.run('ALTER TABLE usuarios ADD COLUMN admin INTEGER NOT NULL DEFAULT 0', (erroAlter) => {
+        if (erroAlter) {
+          console.error('Falha ao adicionar coluna admin:', erroAlter.message);
+        }
+      });
+    }
+
+    if (!existeColunaLocalId) {
+      banco.run('ALTER TABLE usuarios ADD COLUMN local_id INTEGER', (erroAlter) => {
+        if (erroAlter) {
+          console.error('Falha ao adicionar coluna local_id:', erroAlter.message);
+          return;
+        }
+
+        if (existeColunaLocalTexto) {
+          banco.run(
+            `UPDATE usuarios
+             SET local_id = (
+               SELECT id FROM locais WHERE locais.local = usuarios.local LIMIT 1
+             )
+             WHERE local_id IS NULL AND local IS NOT NULL AND TRIM(local) <> ''`
+          );
+        }
+      });
+    } else if (existeColunaLocalTexto) {
+      banco.run(
+        `UPDATE usuarios
+         SET local_id = (
+           SELECT id FROM locais WHERE locais.local = usuarios.local LIMIT 1
+         )
+         WHERE local_id IS NULL AND local IS NOT NULL AND TRIM(local) <> ''`
+      );
+    }
+  });
 });
 
 // Registra eventos de alerta no banco para consulta no painel administrativo.
@@ -260,10 +400,7 @@ const servidor = http.createServer((req, res) => {
     }
 
     // Consulta no banco usando parametro para evitar SQL Injection.
-    banco.get(
-      'SELECT id, nome, local FROM usuarios WHERE nome = ?',
-      [nome],
-      (erro, usuario) => {
+    buscarUsuarioComLocalPorNome(nome, (erro, usuario) => {
         if (erro) {
           responderJson(res, 500, { erro: 'Erro ao consultar o banco.' });
           return;
@@ -275,6 +412,26 @@ const servidor = http.createServer((req, res) => {
         }
 
         responderJson(res, 200, usuario);
+    });
+    return;
+  }
+
+  // Rota: GET /api/locais
+  // Lista locais cadastrados para preencher o select do cadastro.
+  if (req.method === 'GET' && urlRequisicao.pathname === '/api/locais') {
+    banco.all(
+      'SELECT id, local FROM locais ORDER BY local COLLATE NOCASE ASC',
+      [],
+      (erro, locais) => {
+        if (erro) {
+          responderJson(res, 500, { erro: 'Erro ao listar locais.' });
+          return;
+        }
+
+        responderJson(res, 200, {
+          total: Array.isArray(locais) ? locais.length : 0,
+          locais: locais || [],
+        });
       }
     );
     return;
@@ -287,7 +444,7 @@ const servidor = http.createServer((req, res) => {
       .then((corpo) => {
         // Extrai e higieniza os campos enviados pelo front-end.
         const nome = String(corpo.nome || '').trim();
-        const local = corpo.local ? String(corpo.local).trim() : null;
+        const localEntrada = corpo.localId ?? corpo.local_id ?? corpo.local ?? null;
         const senha = corpo.senha ? String(corpo.senha).trim() : null;
         const senhaHash = senha ? gerarHashSenha(senha) : null;
 
@@ -296,24 +453,37 @@ const servidor = http.createServer((req, res) => {
           return;
         }
 
-        // Insere registro na tabela usuarios.
-        banco.run(
-          'INSERT INTO usuarios (nome, local, senha) VALUES (?, ?, ?)',
-          [nome, local, senhaHash],
-          function (erro) {
-            if (erro) {
-              responderJson(res, 500, { erro: 'Nao foi possivel salvar o usuario.' });
-              return;
-            }
-
-            // this.lastID contem o id gerado automaticamente pelo SQLite.
-            responderJson(res, 201, {
-              id: this.lastID,
-              nome,
-              local,
-            });
+        obterLocalPorEntrada(localEntrada, false, (erroLocal, localSelecionado) => {
+          if (erroLocal) {
+            responderJson(res, 500, { erro: 'Erro ao consultar o local selecionado.' });
+            return;
           }
-        );
+
+          if (!localSelecionado) {
+            responderJson(res, 400, { erro: 'Selecione um local valido.' });
+            return;
+          }
+
+          // Insere registro na tabela usuarios.
+          banco.run(
+            'INSERT INTO usuarios (nome, local_id, senha) VALUES (?, ?, ?)',
+            [nome, localSelecionado.id, senhaHash],
+            function (erro) {
+              if (erro) {
+                responderJson(res, 500, { erro: 'Nao foi possivel salvar o usuario.' });
+                return;
+              }
+
+              // this.lastID contem o id gerado automaticamente pelo SQLite.
+              responderJson(res, 201, {
+                id: this.lastID,
+                nome,
+                local: localSelecionado.local,
+                local_id: localSelecionado.id,
+              });
+            }
+          );
+        });
       })
       .catch(() => {
         // Se o JSON vier invalido, responde erro de requisicao.
@@ -436,7 +606,10 @@ const servidor = http.createServer((req, res) => {
 
         // Busca por nome e valida senha com bcrypt (ou formato antigo em texto puro).
         banco.get(
-          'SELECT id, nome, local, admin, senha FROM usuarios WHERE nome = ?',
+          `SELECT u.id, u.nome, COALESCE(l.local, u.local) AS local, u.admin, u.senha, u.local_id
+           FROM usuarios u
+           LEFT JOIN locais l ON l.id = u.local_id
+           WHERE u.nome = ?`,
           [nome],
           (erro, usuario) => {
             if (erro) {
@@ -498,7 +671,7 @@ const servidor = http.createServer((req, res) => {
     lerCorpoJson(req)
       .then((corpo) => {
         const nome = String(corpo.nome || '').trim();
-        const local = corpo.local ? String(corpo.local).trim() : null;
+        const localEntrada = corpo.localId ?? corpo.local_id ?? corpo.local ?? null;
         const senha = String(corpo.senha || '').trim();
         const senhaHash = senha ? gerarHashSenha(senha) : '';
 
@@ -519,23 +692,31 @@ const servidor = http.createServer((req, res) => {
             return;
           }
 
-          banco.run(
-            'INSERT INTO usuarios (nome, local, senha, admin) VALUES (?, ?, ?, 1)',
-            [nome, local, senhaHash],
-            function (erroInsert) {
-              if (erroInsert) {
-                responderJson(res, 500, { erro: 'Nao foi possivel criar o administrador.' });
-                return;
-              }
-
-              responderJson(res, 201, {
-                id: this.lastID,
-                nome,
-                local,
-                admin: 1,
-              });
+          obterLocalPorEntrada(localEntrada, true, (erroLocal, localSelecionado) => {
+            if (erroLocal) {
+              responderJson(res, 500, { erro: 'Erro ao resolver o local do administrador.' });
+              return;
             }
-          );
+
+            banco.run(
+              'INSERT INTO usuarios (nome, local_id, senha, admin) VALUES (?, ?, ?, 1)',
+              [nome, localSelecionado ? localSelecionado.id : null, senhaHash],
+              function (erroInsert) {
+                if (erroInsert) {
+                  responderJson(res, 500, { erro: 'Nao foi possivel criar o administrador.' });
+                  return;
+                }
+
+                responderJson(res, 201, {
+                  id: this.lastID,
+                  nome,
+                  local: localSelecionado ? localSelecionado.local : null,
+                  local_id: localSelecionado ? localSelecionado.id : null,
+                  admin: 1,
+                });
+              }
+            );
+          });
         });
       })
       .catch(() => {
@@ -558,7 +739,10 @@ const servidor = http.createServer((req, res) => {
         }
 
         banco.get(
-          'SELECT id, nome, local, admin, senha FROM usuarios WHERE nome = ? AND admin = 1',
+          `SELECT u.id, u.nome, COALESCE(l.local, u.local) AS local, u.admin, u.senha, u.local_id
+           FROM usuarios u
+           LEFT JOIN locais l ON l.id = u.local_id
+           WHERE u.nome = ? AND u.admin = 1`,
           [nome],
           (erro, usuario) => {
             if (erro) {
@@ -595,10 +779,7 @@ const servidor = http.createServer((req, res) => {
   // Rota: GET /api/admin/usuarios
   // Lista usuarios para exibir no painel administrativo.
   if (req.method === 'GET' && urlRequisicao.pathname === '/api/admin/usuarios') {
-    banco.all(
-      'SELECT id, nome, local, admin FROM usuarios ORDER BY nome COLLATE NOCASE ASC',
-      [],
-      (erro, usuarios) => {
+    listarUsuariosComLocal((erro, usuarios) => {
         if (erro) {
           responderJson(res, 500, { erro: 'Erro ao listar usuarios.' });
           return;
@@ -608,8 +789,7 @@ const servidor = http.createServer((req, res) => {
           total: Array.isArray(usuarios) ? usuarios.length : 0,
           usuarios: usuarios || [],
         });
-      }
-    );
+    });
     return;
   }
 
@@ -700,7 +880,7 @@ const servidor = http.createServer((req, res) => {
       .then((corpo) => {
         const usuarioId = Number(corpo.id);
         const nome = String(corpo.nome || '').trim();
-        const local = corpo.local ? String(corpo.local).trim() : null;
+        const localEntrada = corpo.localId ?? corpo.local_id ?? corpo.local ?? null;
         const senha = corpo.senha ? String(corpo.senha).trim() : '';
 
         if (!Number.isInteger(usuarioId) || usuarioId <= 0) {
@@ -715,7 +895,15 @@ const servidor = http.createServer((req, res) => {
 
         const senhaHash = senha ? gerarHashSenha(senha) : null;
 
-        const concluirAtualizacao = () => {
+        obterLocalPorEntrada(localEntrada, true, (erroLocal, localSelecionado) => {
+          if (erroLocal) {
+            responderJson(res, 500, { erro: 'Erro ao resolver o local do usuario.' });
+            return;
+          }
+
+          const localId = localSelecionado ? localSelecionado.id : null;
+
+          const concluirAtualizacao = () => {
           banco.get('SELECT id FROM usuarios WHERE id = ?', [usuarioId], (erroBusca, usuario) => {
             if (erroBusca) {
               responderJson(res, 500, { erro: 'Erro ao consultar usuario.' });
@@ -728,11 +916,11 @@ const servidor = http.createServer((req, res) => {
             }
 
             const sql = senhaHash
-              ? 'UPDATE usuarios SET nome = ?, local = ?, senha = ? WHERE id = ?'
-              : 'UPDATE usuarios SET nome = ?, local = ? WHERE id = ?';
+              ? 'UPDATE usuarios SET nome = ?, local_id = ?, senha = ? WHERE id = ?'
+              : 'UPDATE usuarios SET nome = ?, local_id = ? WHERE id = ?';
             const params = senhaHash
-              ? [nome, local, senhaHash, usuarioId]
-              : [nome, local, usuarioId];
+              ? [nome, localId, senhaHash, usuarioId]
+              : [nome, localId, usuarioId];
 
             banco.run(sql, params, function (erroUpdate) {
               if (erroUpdate) {
@@ -748,14 +936,16 @@ const servidor = http.createServer((req, res) => {
               responderJson(res, 200, {
                 id: usuarioId,
                 nome,
-                local,
+                local: localSelecionado ? localSelecionado.local : null,
+                local_id: localId,
                 mensagem: 'Usuario atualizado com sucesso.',
               });
             });
           });
-        };
+          };
 
-        concluirAtualizacao();
+          concluirAtualizacao();
+        });
       })
       .catch(() => {
         responderJson(res, 400, { erro: 'Corpo JSON invalido.' });

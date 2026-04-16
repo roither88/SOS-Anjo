@@ -10,57 +10,36 @@
 
 <body>
 
-    <!-- Faixa de perigo no topo -->
-    <div class="faixa-alerta"></div>
-
-    <nav class="navbar-topo">
+    <header class="topo">
+        <div class="logo">SOS ANJO</div>
         <div class="navbar-esquerda">
             <strong>SOS-Anjo</strong>
             <span id="statusLogin" class="status-login">Não logado</span>
         </div>
-        <div class="navbar-direita">
+
+        <div class="login-area">
             <input type="text" id="loginNome" placeholder="Nome de login">
             <input type="password" id="loginSenha" placeholder="Senha">
-            <button id="btnLogin" class="botao-navbar">LOGIN</button>
-            <button id="btnLogout" class="botao-navbar secundario">SAIR</button>
-            <button id="btnIrAdmin" class="botao-navbar secundario">PAINEL ADMIN</button>
-            <button id="btnIrInicio" class="botao-navbar secundario">VOLTAR INÍCIO</button>
+            <button id="btnLogin" class="btn primario">Entrar</button>
+            <button id="btnLogout" class="btn neutro">Sair</button>
+            <button id="btnIrAdmin" class="btn neutro">Painel ADM</button>
+            <button id="btnIrInicio" class="btn neutro">Voltar Início</button>
         </div>
-    </nav>
+    </header>
 
-    <div class="container container-cadastro">
-        <div class="painel-direito painel-direito-cadastro">
-            <div class="login-box" id="cadastroUsuario">
-                <span class="campo-titulo">Cadastro do usuário</span>
-
-                <div class="campo">
-                    <div class="input-wrapper">
-                        <span class="icone">&#128100;</span>
-                        <span class="campo-label">Nome:</span>
-                        <input type="text" id="nome" placeholder="Digite o nome">
-                    </div>
-                </div>
-
-                <div class="campo">
-                    <div class="input-wrapper">
-                        <span class="icone">&#128205;</span>
-                        <span class="campo-label">Local:</span>
-                        <input type="text" id="local" placeholder="Ex.: Sala 3">
-                    </div>
-                </div>
-
-                <div class="campo">
-                    <div class="input-wrapper">
-                        <span class="icone">&#128274;</span>
-                        <span class="campo-label">Senha:</span>
-                        <input type="password" id="senha" placeholder="Crie uma senha">
-                    </div>
-                </div>
-
-                <button id="btnEntrar" class="botao-entrar">SALVAR USUÁRIO</button>
+    <main class="container">
+        <section id="cadastroUsuario" class="painel-card painel-cadastro">
+            <h1 class="painel-titulo">Cadastro de Usuario</h1>
+            <div class="login-area linha-formulario">
+                <input type="text" id="nome" placeholder="Nome do usuario">
+                <select id="local">
+                    <option value="">Carregando locais...</option>
+                </select>
+                <input type="password" id="senha" placeholder="Crie uma senha">
+                <button id="btnEntrar" class="btn primario">Salvar Usuario</button>
             </div>
-        </div>
-    </div>
+        </section>
+    </main>
 
     <script src="scr/js/main.js"></script>
 

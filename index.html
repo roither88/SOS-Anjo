@@ -1,57 +1,46 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOS ANJO</title>
+
     <link rel="stylesheet" href="scr/css/main.css">
-    <title>SOS-Anjo</title>
+   
 </head>
 
 <body>
 
-    <!-- Faixa de perigo no topo -->
-    <div class="faixa-alerta"></div>
-
-    <nav class="navbar-topo">
-        <div class="navbar-esquerda">
+    <!-- HEADER -->
+    <header class="topo">
+        <div class="logo">SOS ANJO</div>
+         <div class="navbar-esquerda">
             <strong>SOS-Anjo</strong>
             <span id="statusLogin" class="status-login">Não logado</span>
         </div>
-        <div class="navbar-direita">
-            <input type="text" id="loginNome" placeholder="Nome de login">
+
+        <div class="login-area">
+            <input type="text" id="loginNome" placeholder="Nome">
             <input type="password" id="loginSenha" placeholder="Senha">
-            <button id="btnLogin" class="botao-navbar">LOGIN</button>
-            <button id="btnLogout" class="botao-navbar secundario">SAIR</button>
-            <button id="btnIrAdmin" class="botao-navbar secundario">PAINEL ADMIN</button>
-            <button id="btnIrCadastro" class="botao-navbar secundario">IR PARA CADASTRO</button>
+
+            <button class="btn primario" id="btnLogin">Entrar</button>
+            <button class="btn neutro" id="btnLogout">Sair</button>
+            <button class="btn neutro" id="btnIrAdmin">Painel ADM</button>
         </div>
-    </nav>
+    </header>
 
-    <!-- Luzes LED nos cantos -->
-    <div class="corner corner-tl"></div>
-    <div class="corner corner-tr"></div>
-    <div class="corner corner-bl"></div>
-    <div class="corner corner-br"></div>
+    <!-- CONTEÚDO -->
+    <main class="container">
 
-    <div class="container container-principal">
+        <button id="btnEmergencia">
+            SOS <br> EMERGÊNCIA
+        </button>
 
-        <!-- ESQUERDA -->
-        <div class="painel-esquerdo">
+        <button id="btnDesativar">
+            Desativar Alerta
+        </button>
 
-            <button id="btnEmergencia" class="botao-emergencia">
-                <span class="push-text">PUSH</span>
-                <span class="for-text">— FOR —</span>
-                <span class="survive-text">SURVIVE</span>
-            </button>
-
-            <button id="btnDesativar" class="botao-desativar">
-                DESATIVAR ALERTA
-            </button>
-
-        </div>
-
-    </div>
+    </main>
 
     <script src="scr/js/main.js"></script>
 

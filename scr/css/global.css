@@ -1,0 +1,25 @@
+:root {
+    --fundo: linear-gradient(180deg, #dbeafe, #c7d7f2);
+
+    --card: rgba(255,255,255,0.35);
+
+    --texto: #3b4f6b;
+    --suave: #6b7f99;
+
+    --primaria: #7fa6d9;
+    --primaria-forte: #4f7fc0;
+
+    --borda: 16px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: var(--fundo);
+    color: var(--texto);
+}
