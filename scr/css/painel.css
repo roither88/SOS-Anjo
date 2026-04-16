@@ -9,8 +9,8 @@
 
 /* BOTÃO EMERGÊNCIA */
 #btnEmergencia {
-    width: 200px;
-    height: 200px;
+    width: 280px;
+    height: 280px;
 
     border-radius: 50%;
     border: none;
@@ -40,41 +40,18 @@
 /* Tablet */
 @media (max-width: 1024px) {
     #btnEmergencia {
-        width: 160px;
-        height: 160px;
+        width: 220px;
+        height: 220px;
     }
 }
 
 /* Celular */
 @media (max-width: 768px) {
     #btnEmergencia {
-        width: 130px;
-        height: 130px;
-        font-size: 14px;
+        width: 180px;
+        height: 180px;
+        font-size: 16px;
     }
-}
-
-/* BOTÃO DESATIVAR */
-#btnDesativar {
-    margin-top: 20px;
-
-    padding: 12px 30px;
-
-    border-radius: 12px;
-    border: none;
-
-    background: rgba(255,255,255,0.6);
-    color: var(--texto);
-
-    font-weight: bold;
-    cursor: pointer;
-
-    transition: 0.3s;
-}
-
-#btnDesativar:hover {
-    background: var(--primaria);
-    color: #fff;
 }
 
 /* PAINEL DE ALERTAS */

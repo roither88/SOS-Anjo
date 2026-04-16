@@ -35,9 +35,8 @@ const cmbTelefone = document.getElementById("cmbTelefone");
 const cmbApiKey   = document.getElementById("cmbApiKey");
 
 // Botoes principais da tela inicial.
+// Botao de emergencia na tela inicial.
 const botao = document.getElementById("btnEmergencia");
-const desativarBotao = document.getElementById("btnDesativar");
-
 // Botao para salvar cadastro de usuario.
 const salvarBotao = document.getElementById("btnEntrar");
 const idUsuarioEditar = document.getElementById("idUsuarioEditar");
@@ -672,20 +671,6 @@ async function aoClicarSalvarUsuario() {
   }
 }
 
-// Handler do botao de desativar alerta.
-function aoClicarDesativar() {
-  registrarEventoAlerta(
-    "alerta_desativado",
-    usuarioLogado ? "Clique no botao desativar alerta." : "Desativacao sem usuario autenticado."
-  );
-
-  if (!exigirLogin()) {
-    return;
-  }
-
-  alert("Alerta desativado.");
-}
-
 // Handler do botao de login da navbar.
 async function aoClicarLogin() {
   try {
@@ -1038,10 +1023,6 @@ function registrarEventos() {
 
   if (salvarBotao) {
     salvarBotao.addEventListener("click", aoClicarSalvarUsuario);
-  }
-
-  if (desativarBotao) {
-    desativarBotao.addEventListener("click", aoClicarDesativar);
   }
 
   if (btnLogin) {
