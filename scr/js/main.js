@@ -127,6 +127,7 @@ function salvarSessaoUsuario(usuario) {
   }
 
   atualizarStatusLogin();
+  atualizarControlesAutenticacao();
 }
 
 // Quando houver admin autenticado, espelha esse login na sessao principal do sistema.
@@ -157,6 +158,29 @@ function atualizarStatusLogin() {
 
   statusLogin.textContent = "Não logado";
   statusLogin.classList.remove("ativo");
+}
+
+// Mostra/esconde os campos de login conforme estado da sessao atual.
+function atualizarControlesAutenticacao() {
+  const estaLogado = Boolean(usuarioLogado);
+
+  if (loginNome) {
+    loginNome.classList.toggle("oculto", estaLogado);
+    if (estaLogado) {
+      loginNome.value = "";
+    }
+  }
+
+  if (loginSenha) {
+    loginSenha.classList.toggle("oculto", estaLogado);
+    if (estaLogado) {
+      loginSenha.value = "";
+    }
+  }
+
+  if (btnLogin) {
+    btnLogin.classList.toggle("oculto", estaLogado);
+  }
 }
 
 // Garante que a acao so continue se houver usuario autenticado.
@@ -1076,6 +1100,7 @@ function registrarEventos() {
 
 // Atualiza a interface com o estado atual e ativa os listeners.
 atualizarStatusLogin();
+atualizarControlesAutenticacao();
 preencherCamposCallMeBot();
 registrarEventos();
 inicializarPaginaAdmin();
