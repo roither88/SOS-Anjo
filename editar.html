@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="scr/css/main.css">
+    <title>Editar Usuário - SOS-Anjo</title>
+</head>
+
+<body>
+
+    <header class="topo">
+        <div class="logo">SOS ANJO</div>
+        <div class="navbar-esquerda">
+            <strong>SOS-Anjo</strong>
+            <span id="statusLogin" class="status-login">Não logado</span>
+        </div>
+
+        <div class="login-area">
+            <input type="text" id="loginNome" placeholder="Nome de login">
+            <input type="password" id="loginSenha" placeholder="Senha">
+            <button id="btnLogin" class="btn primario">Entrar</button>
+            <button id="btnLogout" class="btn neutro">Sair</button>
+            <button id="btnIrAdmin" class="btn neutro">Painel ADM</button>
+            <button id="btnIrInicio" class="btn neutro">Voltar Início</button>
+        </div>
+    </header>
+
+    <main class="container">
+        <section id="editarUsuario" class="painel-card painel-cadastro">
+            <h1 class="painel-titulo">Editar Usuario</h1>
+            <div class="login-area linha-formulario">
+                <input type="hidden" id="idUsuarioEditar">
+                <input type="text" id="nome" placeholder="Nome do usuario">
+                <select id="local">
+                    <option value="">Carregando locais...</option>
+                </select>
+                <input type="password" id="senha" placeholder="Nova senha (opcional)">
+                <button id="btnEntrar" class="btn primario">Salvar Alterações</button>
+            </div>
+        </section>
+    </main>
+
+    <script src="scr/js/main.js"></script>
+
+</body>
+</html>

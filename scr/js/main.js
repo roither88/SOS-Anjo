@@ -15,6 +15,7 @@ const STORAGE_ADMIN = "sos_anjo_admin_logado";
 // Chaves para configuracao do CallMeBot no navegador.
 const STORAGE_CMB_TELEFONE = "sos_anjo_cmb_telefone";
 const STORAGE_CMB_APIKEY   = "sos_anjo_cmb_apikey";
+const STORAGE_EDICAO_USUARIO = "sos_anjo_edicao_usuario";
 
 // Valores padrao do CallMeBot (usados se nada estiver salvo no navegador).
 const CMB_TELEFONE_PADRAO = "554799107264";
@@ -39,6 +40,7 @@ const desativarBotao = document.getElementById("btnDesativar");
 
 // Botao para salvar cadastro de usuario.
 const salvarBotao = document.getElementById("btnEntrar");
+const idUsuarioEditar = document.getElementById("idUsuarioEditar");
 
 // Campos e botoes da navbar de autenticacao.
 const loginNome = document.getElementById("loginNome");
@@ -49,6 +51,7 @@ const btnIrCadastro = document.getElementById("btnIrCadastro");
 const btnIrCadastroPainel = document.getElementById("btnIrCadastroPainel");
 const btnIrInicio = document.getElementById("btnIrInicio");
 const btnIrAdmin = document.getElementById("btnIrAdmin");
+const btnIrAlertas = document.getElementById("btnIrAlertas");
 const statusLogin = document.getElementById("statusLogin");
 
 // Elementos da tela admin (presentes apenas em admin.html).
@@ -185,6 +188,48 @@ function salvarConfigCallMeBot(telefone, apikey) {
   localStorage.setItem(STORAGE_CMB_APIKEY,   apikey);
 }
 
+// Carrega o usuario que sera editado na pagina dedicada.
+function carregarEdicaoUsuario() {
+  try {
+    const valor = sessionStorage.getItem(STORAGE_EDICAO_USUARIO);
+    return valor ? JSON.parse(valor) : null;
+  } catch {
+    return null;
+  }
+}
+
+// Salva o usuario selecionado para edicao entre as paginas.
+function salvarEstadoEdicaoUsuario(usuario) {
+  if (usuario) {
+    sessionStorage.setItem(STORAGE_EDICAO_USUARIO, JSON.stringify(usuario));
+    return;
+  }
+
+  sessionStorage.removeItem(STORAGE_EDICAO_USUARIO);
+}
+
+// Preenche a pagina de edicao com os dados do usuario selecionado.
+async function preencherPaginaEdicaoUsuario() {
+  if (!idUsuarioEditar || !nome || !localizacao || !senhaCadastro) {
+    return;
+  }
+
+  const usuarioEdicao = carregarEdicaoUsuario();
+  if (!usuarioEdicao) {
+    alert("Nenhum usuario foi selecionado para edicao.");
+    window.location.href = "admin.html";
+    return;
+  }
+
+  idUsuarioEditar.value = String(usuarioEdicao.id || "");
+  nome.value = String(usuarioEdicao.nome || "");
+  senhaCadastro.value = "";
+
+  if (usuarioEdicao.local_id) {
+    localizacao.value = String(usuarioEdicao.local_id);
+  }
+}
+
 // Preenche os campos do formulario com os valores salvos (se existirem).
 function preencherCamposCallMeBot() {
   const cfg = carregarConfigCallMeBot();
@@ -192,9 +237,9 @@ function preencherCamposCallMeBot() {
   if (cmbApiKey)   cmbApiKey.value   = cfg.apikey;
 }
 
-// Carrega a lista de locais cadastrados no backend para preencher o select do cadastro.
-async function carregarLocaisCadastro() {
-  if (!localizacao || localizacao.tagName !== "SELECT") {
+// Carrega a lista de locais cadastrados no backend para preencher um select.
+async function carregarLocaisSelect(selectElement) {
+  if (!selectElement || selectElement.tagName !== "SELECT") {
     return;
   }
 
@@ -207,19 +252,35 @@ async function carregarLocaisCadastro() {
     }
 
     const locais = Array.isArray(resultado.locais) ? resultado.locais : [];
-    localizacao.innerHTML = '<option value="">Selecione um local</option>';
+    selectElement.innerHTML = '<option value="">Selecione um local</option>';
+    const locaisJaInseridos = new Set();
 
     locais.forEach((local) => {
       const option = document.createElement("option");
       const nomeLocal = String(local.local || local.nome || "").trim();
+      const chaveLocal = nomeLocal.toLowerCase();
+
+      if (!nomeLocal || locaisJaInseridos.has(chaveLocal)) {
+        return;
+      }
+
+      locaisJaInseridos.add(chaveLocal);
       option.value = String(local.id || "").trim();
       option.textContent = nomeLocal;
-      localizacao.appendChild(option);
+      selectElement.appendChild(option);
     });
   } catch (erro) {
     console.warn("Falha ao carregar locais:", erro.message);
-    localizacao.innerHTML = '<option value="">Selecione um local</option>';
+    selectElement.innerHTML = '<option value="">Selecione um local</option>';
   }
+}
+
+// Recarrega os selects de locais das telas de cadastro e admin.
+async function carregarLocaisFormularios() {
+  await Promise.all([
+    carregarLocaisSelect(localizacao),
+    carregarLocaisSelect(adminCriarLocal),
+  ]);
 }
 
 /* =============================
@@ -341,6 +402,38 @@ async function salvarUsuario() {
   }
 
   alert(`Usuario salvo: ${resultado.nome}`);
+}
+
+// Salva alteracoes de um usuario na pagina de edicao.
+async function salvarEdicaoUsuarioFormulario() {
+  if (!idUsuarioEditar) {
+    return;
+  }
+
+  const usuarioId = Number(valorInput(idUsuarioEditar));
+  const nomeUsuario = valorInput(nome);
+  const localIdUsuario = Number(valorInput(localizacao));
+  const senhaUsuario = valorInput(senhaCadastro);
+
+  if (!Number.isInteger(usuarioId) || usuarioId <= 0) {
+    alert("Usuario de edicao invalido.");
+    return;
+  }
+
+  if (!nomeUsuario) {
+    alert("Informe o nome do usuario.");
+    return;
+  }
+
+  if (!Number.isInteger(localIdUsuario) || localIdUsuario <= 0) {
+    alert("Selecione um local valido.");
+    return;
+  }
+
+  const resultado = await atualizarUsuarioAdmin(usuarioId, nomeUsuario, localIdUsuario, senhaUsuario);
+  salvarEstadoEdicaoUsuario(null);
+  alert(resultado.mensagem || "Usuario atualizado com sucesso.");
+  window.location.href = "admin.html";
 }
 
 // Faz login consultando backend por nome e senha e salva sessao local.
@@ -482,7 +575,7 @@ async function atualizarUsuarioAdmin(idUsuario, nomeUsuario, localUsuario, novaS
   const body = {
     id: idUsuario,
     nome: nomeUsuario,
-    local: localUsuario,
+    localId: localUsuario,
   };
 
   if (novaSenha) {
@@ -567,6 +660,11 @@ async function aoClicarSalvarUsuario() {
   }
 
   try {
+    if (idUsuarioEditar && idUsuarioEditar.value) {
+      await salvarEdicaoUsuarioFormulario();
+      return;
+    }
+
     await salvarUsuario();
   } catch (erro) {
     console.error(erro);
@@ -618,6 +716,11 @@ function aoClicarIrInicio() {
 // Navega para a tela de administracao.
 function aoClicarIrAdmin() {
   window.location.href = "admin.html";
+}
+
+// Navega para o painel de alertas.
+function aoClicarIrAlertas() {
+  window.location.href = "alertas.html";
 }
 
 // Ajusta texto de aviso na tela administrativa com cor semantica.
@@ -687,6 +790,7 @@ function renderizarUsuariosAdmin(usuarios) {
             data-id="${usuario.id}"
             data-nome="${String(usuario.nome || "").replace(/"/g, "&quot;")}"
             data-local="${String(usuario.local || "").replace(/"/g, "&quot;")}"
+            data-local-id="${usuario.local_id ?? ""}"
           >EDITAR</button>
           <button
             class="botao-navbar secundario admin-acao-remover"
@@ -875,55 +979,21 @@ async function aoClicarAcaoPerfilAdmin(evento) {
     const idUsuario = Number(botaoEditar.getAttribute("data-id"));
     const nomeAtual = String(botaoEditar.getAttribute("data-nome") || "").trim();
     const localAtual = String(botaoEditar.getAttribute("data-local") || "").trim();
+    const localIdAtual = Number(botaoEditar.getAttribute("data-local-id") || 0);
 
     if (!Number.isInteger(idUsuario) || idUsuario <= 0) {
       mostrarAvisoAdmin("Usuario invalido para edicao.", "erro");
       return;
     }
 
-    const novoNomeBruto = window.prompt("Novo nome do usuario:", nomeAtual);
-    if (novoNomeBruto === null) {
-      return;
-    }
+    salvarEstadoEdicaoUsuario({
+      id: idUsuario,
+      nome: nomeAtual,
+      local: localAtual,
+      local_id: Number.isInteger(localIdAtual) && localIdAtual > 0 ? localIdAtual : null,
+    });
 
-    const novoNome = novoNomeBruto.trim();
-    if (!novoNome) {
-      mostrarAvisoAdmin("O nome do usuario nao pode ficar vazio.", "erro");
-      return;
-    }
-
-    const novoLocalBruto = window.prompt("Novo local do usuario:", localAtual);
-    if (novoLocalBruto === null) {
-      return;
-    }
-
-    const novoLocal = novoLocalBruto.trim();
-    let novaSenha = "";
-
-    const alterarSenha = window.confirm("Deseja alterar a senha deste usuario?");
-    if (alterarSenha) {
-      const novaSenhaBruta = window.prompt("Digite a nova senha:", "");
-      if (novaSenhaBruta === null) {
-        return;
-      }
-
-      novaSenha = novaSenhaBruta.trim();
-      if (!novaSenha) {
-        mostrarAvisoAdmin("A nova senha nao pode ficar vazia.", "erro");
-        return;
-      }
-    }
-
-    try {
-      const resultado = await atualizarUsuarioAdmin(idUsuario, novoNome, novoLocal, novaSenha);
-      await atualizarPainelAdmin();
-      if (resultado && resultado.mensagem) {
-        mostrarAvisoAdmin(resultado.mensagem, "sucesso");
-      }
-    } catch (erro) {
-      console.error(erro);
-      mostrarAvisoAdmin(erro.message, "erro");
-    }
+    window.location.href = "editar.html";
 
     return;
   }
@@ -998,6 +1068,10 @@ function registrarEventos() {
     btnIrAdmin.addEventListener("click", aoClicarIrAdmin);
   }
 
+  if (btnIrAlertas) {
+    btnIrAlertas.addEventListener("click", aoClicarIrAlertas);
+  }
+
   if (btnCriarAdmin) {
     btnCriarAdmin.addEventListener("click", aoClicarCriarAdmin);
   }
@@ -1022,6 +1096,11 @@ function registrarEventos() {
 // Atualiza a interface com o estado atual e ativa os listeners.
 atualizarStatusLogin();
 preencherCamposCallMeBot();
-carregarLocaisCadastro();
 registrarEventos();
 inicializarPaginaAdmin();
+
+carregarLocaisFormularios().then(() => {
+  if (idUsuarioEditar) {
+    preencherPaginaEdicaoUsuario();
+  }
+});

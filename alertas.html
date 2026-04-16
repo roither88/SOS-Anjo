@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="scr/css/main.css">
+    <title>Painel de Alertas - SOS-Anjo</title>
+</head>
+
+<body>
+
+    <header class="topo">
+        <div class="logo">SOS ANJO</div>
+        <div class="navbar-esquerda">
+            <strong>SOS-Anjo</strong>
+            <span id="statusLogin" class="status-login">Não logado</span>
+        </div>
+
+        <div class="login-area">
+            <button id="btnIrInicio" class="btn neutro">VOLTAR INÍCIO</button>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="painel-card painel-alertas">
+            <h1 class="painel-titulo">Painel de Alertas Ativos</h1>
+            
+            <div id="alertasInfo" class="alertas-info">
+                <p id="totalAlertasTexto" class="total-alertas">Total de alertas: <strong>0</strong></p>
+                <button id="btnAtualizarAlertas" class="btn primario">Atualizar</button>
+            </div>
+
+            <div id="alertasVazio" class="alertas-vazio">
+                <p>Nenhum alerta ativo no momento.</p>
+            </div>
+
+            <div id="alertasContainer" class="alertas-container oculto">
+                <table class="alertas-tabela">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Usuário</th>
+                            <th>Local</th>
+                            <th>Hora do Alerta</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="alertasCorpo"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script src="scr/js/alertas.js"></script>
+
+</body>
+
+</html>

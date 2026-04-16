@@ -72,6 +72,11 @@ function normalizarTexto(valor) {
   return String(valor || '').trim();
 }
 
+// Normaliza nome de local para comparacoes sem diferenciar espacos extras ou maiusculas.
+function normalizarLocal(valor) {
+  return normalizarTexto(valor).toLowerCase();
+}
+
 // Resolve um local por id ou nome. Se criarSeNaoExistir for true, cria o local quando o nome nao existir.
 function obterLocalPorEntrada(entradaLocal, criarSeNaoExistir, callback) {
   const valor = normalizarTexto(entradaLocal);
@@ -96,7 +101,7 @@ function obterLocalPorEntrada(entradaLocal, criarSeNaoExistir, callback) {
     return;
   }
 
-  banco.get('SELECT id, local FROM locais WHERE local = ?', [valor], (erro, local) => {
+  banco.get('SELECT id, local FROM locais WHERE LOWER(TRIM(local)) = ?', [normalizarLocal(valor)], (erro, local) => {
     if (erro) {
       callback(erro, null);
       return;
@@ -129,7 +134,7 @@ function obterLocalPorEntrada(entradaLocal, criarSeNaoExistir, callback) {
 // Busca usuario com o nome do local ja resolvido via JOIN.
 function buscarUsuarioComLocalPorNome(nome, callback) {
   banco.get(
-    `SELECT u.id, u.nome, COALESCE(l.local, u.local) AS local, u.admin, u.senha, u.local_id
+    `SELECT u.id, u.nome, l.local AS local, u.admin, u.senha, u.local_id
      FROM usuarios u
      LEFT JOIN locais l ON l.id = u.local_id
      WHERE u.nome = ?`,
@@ -141,7 +146,7 @@ function buscarUsuarioComLocalPorNome(nome, callback) {
 // Lista usuarios com o local resolvido para exibicao no painel.
 function listarUsuariosComLocal(callback) {
   banco.all(
-    `SELECT u.id, u.nome, COALESCE(l.local, u.local) AS local, u.admin, u.local_id
+    `SELECT u.id, u.nome, l.local AS local, u.admin, u.local_id
      FROM usuarios u
      LEFT JOIN locais l ON l.id = u.local_id
      ORDER BY u.nome COLLATE NOCASE ASC`,
@@ -171,6 +176,30 @@ banco.serialize(() => {
     }
   });
 
+  // Remove duplicados antigos e cria um indice unico normalizado para evitar reincidencia.
+  banco.run(
+    `DELETE FROM locais
+     WHERE id NOT IN (
+       SELECT MIN(id)
+       FROM locais
+       GROUP BY LOWER(TRIM(local))
+     )`,
+    (erroLimpeza) => {
+      if (erroLimpeza) {
+        console.error('Falha ao limpar locais duplicados:', erroLimpeza.message);
+      }
+    }
+  );
+
+  banco.run(
+    'CREATE UNIQUE INDEX IF NOT EXISTS idx_locais_local_normalizado ON locais(LOWER(TRIM(local)))',
+    (erroIndice) => {
+      if (erroIndice) {
+        console.error('Falha ao criar indice unico de locais:', erroIndice.message);
+      }
+    }
+  );
+
   // Cria a tabela de usuarios com a coluna local_id para usar a chave estrangeira.
   banco.run(`
     CREATE TABLE IF NOT EXISTS usuarios (
@@ -192,6 +221,17 @@ banco.serialize(() => {
       data_hora TEXT NOT NULL,
       status TEXT NOT NULL,
       detalhe TEXT
+    )
+  `);
+
+  // Tabela de alertas ativos para permitir desativar alertas em tempo real.
+  banco.run(`
+    CREATE TABLE IF NOT EXISTS alertas_ativos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      usuario_nome TEXT NOT NULL,
+      usuario_local TEXT,
+      data_hora TEXT NOT NULL,
+      ativo INTEGER NOT NULL DEFAULT 1
     )
   `);
 
@@ -420,7 +460,10 @@ const servidor = http.createServer((req, res) => {
   // Lista locais cadastrados para preencher o select do cadastro.
   if (req.method === 'GET' && urlRequisicao.pathname === '/api/locais') {
     banco.all(
-      'SELECT id, local FROM locais ORDER BY local COLLATE NOCASE ASC',
+      `SELECT MIN(id) AS id, local
+       FROM locais
+       GROUP BY LOWER(TRIM(local))
+       ORDER BY LOWER(TRIM(local)) ASC`,
       [],
       (erro, locais) => {
         if (erro) {
@@ -583,11 +626,99 @@ const servidor = http.createServer((req, res) => {
           detalhe,
         });
 
+        // Se o status é de emergência, cria um alerta ativo
+        const statusUpper = status.toUpperCase();
+        if (statusUpper.includes('EMERGENCIA') || statusUpper.includes('ALERTA') || statusUpper.includes('BOTAO_EMERGENCIA')) {
+          banco.run(
+            `INSERT INTO alertas_ativos (usuario_nome, usuario_local, data_hora, ativo)
+             VALUES (?, ?, ?, 1)`,
+            [usuarioNome, usuarioLocal, new Date().toISOString()],
+            (erroInsert) => {
+              if (erroInsert) {
+                console.error('Falha ao registrar alerta ativo:', erroInsert.message);
+              }
+            }
+          );
+        }
+
         responderJson(res, 201, { ok: true });
       })
       .catch(() => {
         responderJson(res, 400, { erro: 'Corpo JSON invalido.' });
       });
+    return;
+  }
+
+  // Rota: GET /api/alertas/ativos
+  // Lista todos os alertas ativos para exibir no painel.
+  if (req.method === 'GET' && urlRequisicao.pathname === '/api/alertas/ativos') {
+    banco.all(
+      `SELECT id, usuario_nome, usuario_local, data_hora
+       FROM alertas_ativos
+       WHERE ativo = 1
+       ORDER BY data_hora DESC`,
+      [],
+      (erro, alertas) => {
+        if (erro) {
+          responderJson(res, 500, { erro: 'Erro ao listar alertas.' });
+          return;
+        }
+
+        responderJson(res, 200, {
+          total: Array.isArray(alertas) ? alertas.length : 0,
+          alertas: alertas || [],
+        });
+      }
+    );
+    return;
+  }
+
+  // Rota: POST /api/alertas/desativar/:id
+  // Desativa um alerta ativo pelo ID.
+  if (req.method === 'POST' && urlRequisicao.pathname.startsWith('/api/alertas/desativar/')) {
+    const id = urlRequisicao.pathname.replace('/api/alertas/desativar/', '').trim();
+    const alertaId = Number(id);
+
+    if (!Number.isInteger(alertaId) || alertaId <= 0) {
+      responderJson(res, 400, { erro: 'ID de alerta invalido.' });
+      return;
+    }
+
+    banco.get('SELECT id, ativo FROM alertas_ativos WHERE id = ?', [alertaId], (erroBusca, alerta) => {
+      if (erroBusca) {
+        responderJson(res, 500, { erro: 'Erro ao consultar alerta.' });
+        return;
+      }
+
+      if (!alerta) {
+        responderJson(res, 404, { erro: 'Alerta nao encontrado.' });
+        return;
+      }
+
+      if (Number(alerta.ativo) === 0) {
+        responderJson(res, 200, {
+          id: alertaId,
+          mensagem: 'Alerta ja estava desativado.',
+        });
+        return;
+      }
+
+      banco.run(
+        'UPDATE alertas_ativos SET ativo = 0 WHERE id = ?',
+        [alertaId],
+        function (erroUpdate) {
+          if (erroUpdate) {
+            responderJson(res, 500, { erro: 'Nao foi possivel desativar o alerta.' });
+            return;
+          }
+
+          responderJson(res, 200, {
+            id: alertaId,
+            mensagem: 'Alerta desativado com sucesso.',
+          });
+        }
+      );
+    });
     return;
   }
 
@@ -606,7 +737,7 @@ const servidor = http.createServer((req, res) => {
 
         // Busca por nome e valida senha com bcrypt (ou formato antigo em texto puro).
         banco.get(
-          `SELECT u.id, u.nome, COALESCE(l.local, u.local) AS local, u.admin, u.senha, u.local_id
+          `SELECT u.id, u.nome, l.local AS local, u.admin, u.senha, u.local_id
            FROM usuarios u
            LEFT JOIN locais l ON l.id = u.local_id
            WHERE u.nome = ?`,
@@ -739,7 +870,7 @@ const servidor = http.createServer((req, res) => {
         }
 
         banco.get(
-          `SELECT u.id, u.nome, COALESCE(l.local, u.local) AS local, u.admin, u.senha, u.local_id
+          `SELECT u.id, u.nome, l.local AS local, u.admin, u.senha, u.local_id
            FROM usuarios u
            LEFT JOIN locais l ON l.id = u.local_id
            WHERE u.nome = ? AND u.admin = 1`,
