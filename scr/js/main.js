@@ -144,6 +144,25 @@ function sincronizarSessaoUsuarioComAdmin() {
   });
 }
 
+// Retorna true quando o usuario autenticado possui perfil de administrador.
+function usuarioLogadoEhAdmin() {
+  return Boolean(usuarioLogado && Number(usuarioLogado.admin) === 1);
+}
+
+// Quando houver usuario admin logado pela navbar, prepara sessao do painel admin.
+function sincronizarSessaoAdminComUsuario() {
+  if (adminLogado || !usuarioLogadoEhAdmin()) {
+    return;
+  }
+
+  salvarSessaoAdmin({
+    id: usuarioLogado.id,
+    nome: usuarioLogado.nome,
+    local: usuarioLogado.local || "",
+    admin: 1,
+  });
+}
+
 // Atualiza o chip visual de status: "Nao logado" ou "Logado: Nome".
 function atualizarStatusLogin() {
   if (!statusLogin) {
@@ -482,6 +501,18 @@ async function fazerLogin() {
   }
 
   salvarSessaoUsuario(resultado);
+
+  if (Number(resultado.admin) === 1) {
+    salvarSessaoAdmin({
+      id: resultado.id,
+      nome: resultado.nome,
+      local: resultado.local || "",
+      admin: 1,
+    });
+  } else {
+    salvarSessaoAdmin(null);
+  }
+
   alert(`Login realizado: ${resultado.nome}`);
 }
 
@@ -724,6 +755,7 @@ function aoClicarIrInicio() {
 
 // Navega para a tela de administracao.
 function aoClicarIrAdmin() {
+  sincronizarSessaoAdminComUsuario();
   window.location.href = "admin.html";
 }
 
@@ -884,6 +916,8 @@ async function inicializarPaginaAdmin() {
       mostrarAvisoAdmin("Nenhum administrador cadastrado. Crie o primeiro para liberar o painel.");
       return;
     }
+
+    sincronizarSessaoAdminComUsuario();
 
     if (adminLogado) {
       sincronizarSessaoUsuarioComAdmin();
