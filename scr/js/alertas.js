@@ -2,8 +2,8 @@
    Configuracao da aplicacao
    ============================= */
 
-const estaEmAmbienteLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-const API_BASE = estaEmAmbienteLocal && window.location.port !== "3000"
+const estaEmAmbienteLocal = globalThis.location.hostname === "localhost" || globalThis.location.hostname === "127.0.0.1";
+const API_BASE = estaEmAmbienteLocal && globalThis.location.port !== "3000"
   ? "http://localhost:3000"
   : "";
 
@@ -33,13 +33,14 @@ function atualizarStatusLogin() {
     const usuarioObj = usuario ? JSON.parse(usuario) : null;
     
     if (statusLogin) {
-      if (usuarioObj && usuarioObj.nome) {
+      if (usuarioObj?.nome) {
         statusLogin.textContent = `Logado: Anjo ${usuarioObj.nome}`;
       } else {
         statusLogin.textContent = "Não logado";
       }
     }
   } catch (e) {
+    console.warn("Nao foi possivel atualizar status de login:", e);
     if (statusLogin) {
       statusLogin.textContent = "Não logado";
     }
@@ -57,7 +58,7 @@ function iniciarAudio() {
   // Tenta reproduzir o arquivo de áudio
   const promisePlay = audioAlerta.play();
   if (promisePlay !== undefined) {
-    promisePlay.catch((erro) => {
+    promisePlay.catch(() => {
       console.warn("Não foi possível reproduzir scr/audios/alerta.wav, usando tom de alerta alternativo");
       // Se o arquivo não existir, usa a Web Audio API para gerar um tom
       gerarTomAlerta();
@@ -68,7 +69,7 @@ function iniciarAudio() {
 // Gera um tom de alerta usando Web Audio API (fallback)
 function gerarTomAlerta() {
   try {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const audioContext = new (globalThis.AudioContext || globalThis.webkitAudioContext)();
     
     // Cria osciladores para gerar um som de alerta
     const oscilador = audioContext.createOscillator();
@@ -86,7 +87,7 @@ function gerarTomAlerta() {
     // Cria um padrão: bip-bip-bip a cada 2 segundos
     let tempoAtual = audioContext.currentTime;
     const intervalo = setInterval(() => {
-      if (!audioAlerta || (audioAlerta && audioAlerta.paused)) {
+      if (!audioAlerta || (audioAlerta?.paused)) {
         oscilador.stop();
         clearInterval(intervalo);
         return;
@@ -125,11 +126,58 @@ function pararAudio() {
       try {
         audioAlerta._oscilador.stop();
       } catch (e) {
-        // Oscilador já foi parado
+        console.warn("Oscilador de alerta ja estava parado:", e);
       }
       audioAlerta._oscilador = null;
     }
   }
+}
+
+function atualizarVisibilidadeAlertas(alertas) {
+  if (alertas.length === 0) {
+    if (alertasVazio) alertasVazio.classList.remove("oculto");
+    if (alertasContainer) alertasContainer.classList.add("oculto");
+    if (alertasCorpo) alertasCorpo.innerHTML = "";
+    return false;
+  }
+
+  if (alertasVazio) alertasVazio.classList.add("oculto");
+  if (alertasContainer) alertasContainer.classList.remove("oculto");
+  return true;
+}
+
+function popularTabelaAlertas(alertas) {
+  if (!alertasCorpo) {
+    return;
+  }
+
+  alertasCorpo.innerHTML = "";
+  alertas.forEach((alerta) => {
+    const linha = document.createElement("tr");
+
+    const dataHora = new Date(alerta.data_hora);
+    const dataFormatada = dataHora.toLocaleString("pt-BR");
+
+    linha.innerHTML = `
+      <td>${alerta.id}</td>
+      <td>${alerta.usuario_nome || "N/A"}</td>
+      <td>${alerta.usuario_local || "N/A"}</td>
+      <td>${dataFormatada}</td>
+      <td>
+        <button class="btn-desativar" data-id="${alerta.id}">DESATIVAR</button>
+      </td>
+    `;
+
+    alertasCorpo.appendChild(linha);
+  });
+
+  // Adiciona listeners aos botões de desativar
+  document.querySelectorAll(".btn-desativar").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = btn.dataset.id;
+      desativarAlerta(id);
+    });
+  });
 }
 
 // Busca alertas ativos do servidor
@@ -162,50 +210,29 @@ async function carregarAlertas() {
     }
 
     // Mostra/esconde container vazio
-    if (alertas.length === 0) {
-      if (alertasVazio) alertasVazio.classList.remove("oculto");
-      if (alertasContainer) alertasContainer.classList.add("oculto");
-      if (alertasCorpo) alertasCorpo.innerHTML = "";
+    const haAlertas = atualizarVisibilidadeAlertas(alertas);
+    if (!haAlertas) {
       return;
     }
 
-    if (alertasVazio) alertasVazio.classList.add("oculto");
-    if (alertasContainer) alertasContainer.classList.remove("oculto");
-
     // Popula tabela
-    if (alertasCorpo) {
-      alertasCorpo.innerHTML = "";
-      alertas.forEach((alerta) => {
-        const linha = document.createElement("tr");
-        
-        const dataHora = new Date(alerta.data_hora);
-        const dataFormatada = dataHora.toLocaleString("pt-BR");
-
-        linha.innerHTML = `
-          <td>${alerta.id}</td>
-          <td>${alerta.usuario_nome || "N/A"}</td>
-          <td>${alerta.usuario_local || "N/A"}</td>
-          <td>${dataFormatada}</td>
-          <td>
-            <button class="btn-desativar" data-id="${alerta.id}">DESATIVAR</button>
-          </td>
-        `;
-
-        alertasCorpo.appendChild(linha);
-      });
-
-      // Adiciona listeners aos botões de desativar
-      document.querySelectorAll(".btn-desativar").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const id = btn.dataset.id;
-          desativarAlerta(id);
-        });
-      });
-    }
-  } catch (erro) {
-    console.error("Erro ao carregar alertas:", erro);
+    popularTabelaAlertas(alertas);
+  } catch (error_) {
+    console.error("Erro ao carregar alertas:", error_);
     mostrarMensagem("Erro ao conectar com o servidor", "erro");
   }
+}
+
+function obterCorMensagem(tipo) {
+  if (tipo === "sucesso") {
+    return "#4CAF50";
+  }
+
+  if (tipo === "erro") {
+    return "#f44336";
+  }
+
+  return "#2196F3";
 }
 
 // Desativa um alerta específico
@@ -234,14 +261,16 @@ async function desativarAlerta(id) {
     setTimeout(() => {
       carregarAlertas();
     }, 500);
-  } catch (erro) {
-    console.error("Erro ao desativar alerta:", erro);
+  } catch (error_) {
+    console.error("Erro ao desativar alerta:", error_);
     mostrarMensagem("Erro ao conectar com o servidor", "erro");
   }
 }
 
 // Mostra uma mensagem temporária ao usuário
 function mostrarMensagem(texto, tipo = "info") {
+  const corMensagem = obterCorMensagem(tipo);
+
   // Cria elemento de mensagem
   const mensagem = document.createElement("div");
   mensagem.className = `mensagem-flutuante mensagem-${tipo}`;
@@ -250,7 +279,7 @@ function mostrarMensagem(texto, tipo = "info") {
     position: fixed;
     top: 20px;
     right: 20px;
-    background-color: ${tipo === "sucesso" ? "#4CAF50" : tipo === "erro" ? "#f44336" : "#2196F3"};
+    background-color: ${corMensagem};
     color: white;
     padding: 16px;
     border-radius: 4px;
@@ -275,7 +304,7 @@ function mostrarMensagem(texto, tipo = "info") {
 // Volta para a página inicial
 if (btnIrInicio) {
   btnIrInicio.addEventListener("click", () => {
-    window.location.href = "index.html";
+    globalThis.location.href = "index.html";
   });
 }
 
@@ -298,7 +327,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!adminLogado) {
     mostrarMensagem("Acesso negado! Apenas administradores podem acessar este painel.", "erro");
     setTimeout(() => {
-      window.location.href = "index.html";
+      globalThis.location.href = "index.html";
     }, 2000);
     return;
   }
@@ -313,7 +342,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // Para o áudio quando sair da página
-window.addEventListener("beforeunload", () => {
+globalThis.addEventListener("beforeunload", () => {
   pararAudio();
 });
 
@@ -331,6 +360,7 @@ function verificarAutenticacaoAdmin() {
     const admin = localStorage.getItem("sos_anjo_admin_logado");
     return admin ? JSON.parse(admin) : null;
   } catch (e) {
+    console.warn("Nao foi possivel verificar autenticacao de admin:", e);
     return null;
   }
 }

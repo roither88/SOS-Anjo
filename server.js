@@ -1,6 +1,6 @@
-const http = require('http');
-const path = require('path');
-const { URL } = require('url');
+const http = require('node:http');
+const path = require('node:path');
+const { URL } = require('node:url');
 
 const db = require('./src/banco');
 const { processarRotas } = require('./src/rotas');
