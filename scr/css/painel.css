@@ -35,6 +35,18 @@
     transform: scale(1.08);
 }
 
+#btnDesativarAlerta {
+    margin-top: 22px;
+    background: #f05f5f;
+    color: #fff;
+    font-weight: 700;
+}
+
+#btnDesativarAlerta:hover {
+    background: #d84a4a;
+    transform: scale(1.05);
+}
+
 /* RESPONSIVIDADE */
 
 /* Tablet */

@@ -37,6 +37,8 @@ const cmbApiKey   = document.getElementById("cmbApiKey");
 // Botoes principais da tela inicial.
 // Botao de emergencia na tela inicial.
 const botao = document.getElementById("btnEmergencia");
+const botaoDesativarAlerta = document.getElementById("btnDesativarAlerta");
+const audioAlerta = document.getElementById("audioAlerta");
 // Botao para salvar cadastro de usuario.
 const salvarBotao = document.getElementById("btnEntrar");
 const idUsuarioEditar = document.getElementById("idUsuarioEditar");
@@ -78,6 +80,48 @@ const adminLogsCorpo = document.getElementById("adminLogsCorpo");
 // Estado em memoria do usuario atual; inicia tentando restaurar do localStorage.
 let usuarioLogado = carregarSessaoUsuario();
 let adminLogado = carregarSessaoAdmin();
+let alertaSonoroAtivo = false;
+
+function atualizarVisibilidadeBotaoAlerta() {
+  if (!botaoDesativarAlerta) {
+    return;
+  }
+
+  botaoDesativarAlerta.classList.toggle("oculto", !alertaSonoroAtivo);
+}
+
+async function ativarSomAlerta() {
+  if (!(audioAlerta instanceof HTMLAudioElement)) {
+    return;
+  }
+
+  audioAlerta.currentTime = 0;
+
+  try {
+    await audioAlerta.play();
+    alertaSonoroAtivo = true;
+  } catch (error_) {
+    console.warn("Nao foi possivel reproduzir o som de alerta:", error_);
+    alertaSonoroAtivo = false;
+  }
+
+  atualizarVisibilidadeBotaoAlerta();
+}
+
+function desativarSomAlerta() {
+  if (!(audioAlerta instanceof HTMLAudioElement)) {
+    return;
+  }
+
+  audioAlerta.pause();
+  audioAlerta.currentTime = 0;
+  alertaSonoroAtivo = false;
+  atualizarVisibilidadeBotaoAlerta();
+}
+
+function aoClicarDesativarAlerta() {
+  desativarSomAlerta();
+}
 
 // Retorna o valor de um input de forma segura (quando o elemento existe).
 function valorInput(elemento) {
@@ -693,6 +737,7 @@ async function aoClicarEmergencia() {
 
     console.log("Disparando panico para:", nomeFinal, localFinal);
     await dispararPanico(nomeFinal, localFinal);
+    await ativarSomAlerta();
     alert("✅ Alerta enviado com sucesso para o WhatsApp!");
   } catch (error_) {
     console.error("Erro ao disparar emergencia:", error_);
@@ -1099,6 +1144,10 @@ function registrarEventos() {
     botao.addEventListener("click", aoClicarEmergencia);
   }
 
+  if (botaoDesativarAlerta) {
+    botaoDesativarAlerta.addEventListener("click", aoClicarDesativarAlerta);
+  }
+
   if (salvarBotao) {
     salvarBotao.addEventListener("click", aoClicarSalvarUsuario);
   }
@@ -1156,6 +1205,7 @@ function registrarEventos() {
 atualizarStatusLogin();
 atualizarControlesAutenticacao();
 preencherCamposCallMeBot();
+atualizarVisibilidadeBotaoAlerta();
 registrarEventos();
 inicializarPaginaAdmin();
 
