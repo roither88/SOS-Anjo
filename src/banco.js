@@ -91,14 +91,30 @@ function registrarLogAlerta(banco, { usuarioNome, usuarioLocal, status, detalhe 
   );
 }
 
-// Lista logs de alertas
-function listarLogsAlerta(banco, limite, callback) {
+// Conta total de logs de alertas
+function contarLogsAlerta(banco, callback) {
+  banco.get('SELECT COUNT(*) AS total FROM alerta_logs', [], (erro, linha) => {
+    if (erro) {
+      callback(erro, null);
+      return;
+    }
+
+    const total = Number(linha?.total || 0);
+    callback(null, total);
+  });
+}
+
+// Lista logs de alertas com paginacao (limite + offset)
+function listarLogsAlerta(banco, limite, offset, callback) {
+  const limiteNumerico = Number.isInteger(Number(limite)) ? Number(limite) : 20;
+  const offsetNumerico = Number.isInteger(Number(offset)) ? Number(offset) : 0;
+
   banco.all(
     `SELECT id, usuario_nome, usuario_local, data_hora, status, detalhe
      FROM alerta_logs
      ORDER BY id DESC
-     LIMIT ?`,
-    [limite],
+     LIMIT ? OFFSET ?`,
+    [Math.max(1, limiteNumerico), Math.max(0, offsetNumerico)],
     callback
   );
 }
@@ -162,7 +178,7 @@ function contarAdmins(banco, callback) {
       callback(erro, null);
       return;
     }
-    const total = Number((linha && linha.total) || 0);
+    const total = Number(linha?.total || 0);
     callback(null, total);
   });
 }
@@ -224,6 +240,7 @@ module.exports = {
   listarUsuariosComLocal,
   listarLocais,
   registrarLogAlerta,
+  contarLogsAlerta,
   listarLogsAlerta,
   listarAlertasAtivos,
   inserirAlertaAtivo,

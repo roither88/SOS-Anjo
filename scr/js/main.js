@@ -16,6 +16,7 @@ const STORAGE_ADMIN = "sos_anjo_admin_logado";
 const STORAGE_CMB_TELEFONE = "sos_anjo_cmb_telefone";
 const STORAGE_CMB_APIKEY   = "sos_anjo_cmb_apikey";
 const STORAGE_EDICAO_USUARIO = "sos_anjo_edicao_usuario";
+const STORAGE_ALERTA_SONORO_ATIVO = "sos_anjo_alerta_sonoro_ativo";
 
 // Valores padrao do CallMeBot (usados se nada estiver salvo no navegador).
 const CMB_TELEFONE_PADRAO = "554799107264";
@@ -72,6 +73,11 @@ const btnAdminLogout = document.getElementById("btnAdminLogout");
 const adminUsuarioLogado = document.getElementById("adminUsuarioLogado");
 const adminTabelaCorpo = document.getElementById("adminTabelaCorpo");
 const adminLogsCorpo = document.getElementById("adminLogsCorpo");
+const adminLogsPaginacao = document.getElementById("adminLogsPaginacao");
+
+const LOGS_POR_PAGINA = 5;
+let paginaLogsAtual = 1;
+let totalPaginasLogs = 1;
 
 /* =============================
    Estado da sessao
@@ -80,7 +86,28 @@ const adminLogsCorpo = document.getElementById("adminLogsCorpo");
 // Estado em memoria do usuario atual; inicia tentando restaurar do localStorage.
 let usuarioLogado = carregarSessaoUsuario();
 let adminLogado = carregarSessaoAdmin();
-let alertaSonoroAtivo = false;
+let alertaSonoroAtivo = carregarEstadoAlertaSonoro();
+
+function carregarEstadoAlertaSonoro() {
+  try {
+    return localStorage.getItem(STORAGE_ALERTA_SONORO_ATIVO) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function salvarEstadoAlertaSonoro(ativo) {
+  try {
+    if (ativo) {
+      localStorage.setItem(STORAGE_ALERTA_SONORO_ATIVO, "1");
+      return;
+    }
+
+    localStorage.removeItem(STORAGE_ALERTA_SONORO_ATIVO);
+  } catch {
+    // Ignora falhas de persistencia para nao interromper o fluxo do alerta.
+  }
+}
 
 function atualizarVisibilidadeBotaoAlerta() {
   if (!botaoDesativarAlerta) {
@@ -90,7 +117,7 @@ function atualizarVisibilidadeBotaoAlerta() {
   botaoDesativarAlerta.classList.toggle("oculto", !alertaSonoroAtivo);
 }
 
-async function ativarSomAlerta() {
+async function ativarSomAlerta(manterAtivoEmFalha = false) {
   if (!(audioAlerta instanceof HTMLAudioElement)) {
     return;
   }
@@ -102,9 +129,10 @@ async function ativarSomAlerta() {
     alertaSonoroAtivo = true;
   } catch (error_) {
     console.warn("Nao foi possivel reproduzir o som de alerta:", error_);
-    alertaSonoroAtivo = false;
+    alertaSonoroAtivo = manterAtivoEmFalha;
   }
 
+  salvarEstadoAlertaSonoro(alertaSonoroAtivo);
   atualizarVisibilidadeBotaoAlerta();
 }
 
@@ -116,11 +144,67 @@ function desativarSomAlerta() {
   audioAlerta.pause();
   audioAlerta.currentTime = 0;
   alertaSonoroAtivo = false;
+  salvarEstadoAlertaSonoro(false);
   atualizarVisibilidadeBotaoAlerta();
 }
 
-function aoClicarDesativarAlerta() {
+async function restaurarSomAlertaSeAtivo() {
+  if (!alertaSonoroAtivo) {
+    return;
+  }
+
+  await ativarSomAlerta(true);
+}
+
+async function desativarChamadasAtivasDoUsuario() {
+  const nomeUsuario = String(usuarioLogado?.nome || "").trim().toLowerCase();
+  if (!nomeUsuario) {
+    return;
+  }
+
+  try {
+    const respostaAlertas = await fetch(`${API_BASE}/api/alertas/ativos`);
+    const dados = await respostaAlertas.json().catch(() => ({}));
+
+    if (!respostaAlertas.ok) {
+      throw new Error(dados.erro || "Nao foi possivel listar alertas ativos.");
+    }
+
+    const alertas = Array.isArray(dados.alertas) ? dados.alertas : [];
+    const alertasDoUsuario = alertas.filter((alerta) => {
+      return String(alerta.usuario_nome || "").trim().toLowerCase() === nomeUsuario;
+    });
+
+    if (!alertasDoUsuario.length) {
+      return;
+    }
+
+    const desativacoes = alertasDoUsuario.map(async (alerta) => {
+      const idAlerta = Number(alerta.id);
+      if (!Number.isInteger(idAlerta) || idAlerta <= 0) {
+        return;
+      }
+
+      const respostaDesativar = await fetch(`${API_BASE}/api/alertas/desativar/${idAlerta}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!respostaDesativar.ok) {
+        const erro = await respostaDesativar.json().catch(() => ({}));
+        throw new Error(erro.erro || `Falha ao desativar alerta ${idAlerta}.`);
+      }
+    });
+
+    await Promise.all(desativacoes);
+  } catch (error_) {
+    console.warn("Nao foi possivel desativar chamadas no painel:", error_);
+  }
+}
+
+async function aoClicarDesativarAlerta() {
   desativarSomAlerta();
+  await desativarChamadasAtivasDoUsuario();
 }
 
 // Retorna o valor de um input de forma segura (quando o elemento existe).
@@ -640,15 +724,21 @@ async function listarUsuariosAdmin() {
 }
 
 // Busca os ultimos logs de acionamento do botao de emergencia.
-async function listarLogsAlertaAdmin(limite = 20) {
-  const response = await fetch(`${API_BASE}/api/admin/logs-alerta?limit=${encodeURIComponent(limite)}`);
+async function listarLogsAlertaAdmin(pagina = 1, limite = LOGS_POR_PAGINA) {
+  const response = await fetch(
+    `${API_BASE}/api/admin/logs-alerta?limit=${encodeURIComponent(limite)}&page=${encodeURIComponent(pagina)}`
+  );
   const resultado = await response.json().catch(() => ({}));
 
   if (!response.ok) {
     throw new Error(resultado.erro || "Nao foi possivel carregar os logs de alerta.");
   }
 
-  return Array.isArray(resultado.logs) ? resultado.logs : [];
+  return {
+    logs: Array.isArray(resultado.logs) ? resultado.logs : [],
+    paginaAtual: Number(resultado.paginaAtual) || pagina,
+    totalPaginas: Math.max(1, Number(resultado.totalPaginas) || 1),
+  };
 }
 
 // Atualiza perfil administrativo de um usuario no backend.
@@ -923,6 +1013,36 @@ function renderizarLogsAlertaAdmin(logs) {
   });
 }
 
+function renderizarPaginacaoLogsAdmin() {
+  if (!adminLogsPaginacao) {
+    return;
+  }
+
+  if (totalPaginasLogs <= 1) {
+    adminLogsPaginacao.innerHTML = "";
+    return;
+  }
+
+  let botoesPaginas = "";
+  for (let pagina = 1; pagina <= totalPaginasLogs; pagina += 1) {
+    const classeBotao = pagina === paginaLogsAtual ? "btn primario" : "btn neutro";
+    botoesPaginas += `<button class="${classeBotao}" data-pagina-logs="${pagina}">${pagina}</button>`;
+  }
+
+  adminLogsPaginacao.innerHTML = `
+    <span>Pagina ${paginaLogsAtual} de ${totalPaginasLogs}</span>
+    <div class="admin-acoes-linha">${botoesPaginas}</div>
+  `;
+}
+
+async function atualizarLogsAdmin(pagina = 1) {
+  const resultado = await listarLogsAlertaAdmin(pagina, LOGS_POR_PAGINA);
+  paginaLogsAtual = Math.max(1, Number(resultado.paginaAtual) || 1);
+  totalPaginasLogs = Math.max(1, Number(resultado.totalPaginas) || 1);
+  renderizarLogsAlertaAdmin(resultado.logs);
+  renderizarPaginacaoLogsAdmin();
+}
+
 // Atualiza lista de usuarios e cabecalho do painel.
 async function atualizarPainelAdmin() {
   if (!adminLogado) {
@@ -933,11 +1053,13 @@ async function atualizarPainelAdmin() {
   renderizarUsuariosAdmin(usuarios);
 
   try {
-    const logs = await listarLogsAlertaAdmin(20);
-    renderizarLogsAlertaAdmin(logs);
+    await atualizarLogsAdmin(paginaLogsAtual);
   } catch (error_) {
     console.error("Falha ao carregar logs de alerta:", error_);
     renderizarLogsAlertaAdmin([]);
+    totalPaginasLogs = 1;
+    paginaLogsAtual = 1;
+    renderizarPaginacaoLogsAdmin();
   }
 
   if (adminUsuarioLogado) {
@@ -1024,7 +1146,32 @@ async function aoClicarAdminLogout() {
 // Atualiza manualmente os dados exibidos no painel.
 async function aoClicarAdminAtualizar() {
   try {
+    paginaLogsAtual = 1;
     await atualizarPainelAdmin();
+  } catch (error_) {
+    console.error(error_);
+    mostrarAvisoAdmin(error_.message, "erro");
+  }
+}
+
+async function aoClicarPaginacaoLogsAdmin(evento) {
+  const alvo = obterAlvoEvento(evento);
+  if (!alvo) {
+    return;
+  }
+
+  const botaoPagina = alvo.closest("[data-pagina-logs]");
+  if (!botaoPagina) {
+    return;
+  }
+
+  const paginaSolicitada = Number(botaoPagina.dataset.paginaLogs);
+  if (!Number.isInteger(paginaSolicitada) || paginaSolicitada <= 0 || paginaSolicitada === paginaLogsAtual) {
+    return;
+  }
+
+  try {
+    await atualizarLogsAdmin(paginaSolicitada);
   } catch (error_) {
     console.error(error_);
     mostrarAvisoAdmin(error_.message, "erro");
@@ -1140,65 +1287,28 @@ async function aoClicarAcaoPerfilAdmin(evento) {
 
 // Conecta eventos somente para os elementos que existem na pagina atual.
 function registrarEventos() {
-  if (botao) {
-    botao.addEventListener("click", aoClicarEmergencia);
-  }
+  const vincularEventoClique = (elemento, handler) => {
+    if (elemento) {
+      elemento.addEventListener("click", handler);
+    }
+  };
 
-  if (botaoDesativarAlerta) {
-    botaoDesativarAlerta.addEventListener("click", aoClicarDesativarAlerta);
-  }
-
-  if (salvarBotao) {
-    salvarBotao.addEventListener("click", aoClicarSalvarUsuario);
-  }
-
-  if (btnLogin) {
-    btnLogin.addEventListener("click", aoClicarLogin);
-  }
-
-  if (btnLogout) {
-    btnLogout.addEventListener("click", aoClicarLogout);
-  }
-
-  if (btnIrCadastro) {
-    btnIrCadastro.addEventListener("click", aoClicarIrCadastro);
-  }
-
-  if (btnIrCadastroPainel) {
-    btnIrCadastroPainel.addEventListener("click", aoClicarIrCadastro);
-  }
-
-  if (btnIrInicio) {
-    btnIrInicio.addEventListener("click", aoClicarIrInicio);
-  }
-
-  if (btnIrAdmin) {
-    btnIrAdmin.addEventListener("click", aoClicarIrAdmin);
-  }
-
-  if (btnIrAlertas) {
-    btnIrAlertas.addEventListener("click", aoClicarIrAlertas);
-  }
-
-  if (btnCriarAdmin) {
-    btnCriarAdmin.addEventListener("click", aoClicarCriarAdmin);
-  }
-
-  if (btnAdminLogin) {
-    btnAdminLogin.addEventListener("click", aoClicarAdminLogin);
-  }
-
-  if (btnAdminLogout) {
-    btnAdminLogout.addEventListener("click", aoClicarAdminLogout);
-  }
-
-  if (btnAdminAtualizar) {
-    btnAdminAtualizar.addEventListener("click", aoClicarAdminAtualizar);
-  }
-
-  if (adminTabelaCorpo) {
-    adminTabelaCorpo.addEventListener("click", aoClicarAcaoPerfilAdmin);
-  }
+  vincularEventoClique(botao, aoClicarEmergencia);
+  vincularEventoClique(botaoDesativarAlerta, aoClicarDesativarAlerta);
+  vincularEventoClique(salvarBotao, aoClicarSalvarUsuario);
+  vincularEventoClique(btnLogin, aoClicarLogin);
+  vincularEventoClique(btnLogout, aoClicarLogout);
+  vincularEventoClique(btnIrCadastro, aoClicarIrCadastro);
+  vincularEventoClique(btnIrCadastroPainel, aoClicarIrCadastro);
+  vincularEventoClique(btnIrInicio, aoClicarIrInicio);
+  vincularEventoClique(btnIrAdmin, aoClicarIrAdmin);
+  vincularEventoClique(btnIrAlertas, aoClicarIrAlertas);
+  vincularEventoClique(btnCriarAdmin, aoClicarCriarAdmin);
+  vincularEventoClique(btnAdminLogin, aoClicarAdminLogin);
+  vincularEventoClique(btnAdminLogout, aoClicarAdminLogout);
+  vincularEventoClique(btnAdminAtualizar, aoClicarAdminAtualizar);
+  vincularEventoClique(adminLogsPaginacao, aoClicarPaginacaoLogsAdmin);
+  vincularEventoClique(adminTabelaCorpo, aoClicarAcaoPerfilAdmin);
 }
 
 // Atualiza a interface com o estado atual e ativa os listeners.
@@ -1208,6 +1318,7 @@ preencherCamposCallMeBot();
 atualizarVisibilidadeBotaoAlerta();
 registrarEventos();
 inicializarPaginaAdmin();
+restaurarSomAlertaSeAtivo();
 
 carregarLocaisFormularios().then(() => {
   if (idUsuarioEditar) {

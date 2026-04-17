@@ -226,7 +226,7 @@ function rotaAlerta(req, res, urlRequisicao) {
 // SEÇÃO 2: ROTAS DE ALERTA (Gerenciam alertas do sistema)
 // =============================================================================
 
-// ========== ROTA: GET /api/admin/logs-alerta?limit=20 ===========
+// ========== ROTA: GET /api/admin/logs-alerta?limit=5&page=1 ===========
 
 function rotaLogsAlerta(req, res, urlRequisicao, banco) {
   if (req.method === 'GET' && urlRequisicao.pathname === '/api/admin/logs-alerta') {
@@ -234,16 +234,32 @@ function rotaLogsAlerta(req, res, urlRequisicao, banco) {
     const limite = Number.isInteger(limiteBruto) && limiteBruto > 0
       ? Math.min(limiteBruto, 100)
       : 20;
+    const paginaBruta = Number(urlRequisicao.searchParams.get('page') || 1);
+    const paginaSolicitada = Number.isInteger(paginaBruta) && paginaBruta > 0 ? paginaBruta : 1;
 
-    db.listarLogsAlerta(banco, limite, (erro, logs) => {
-      if (erro) {
-        responderJson(res, 500, { erro: 'Erro ao listar logs de alerta.' });
+    db.contarLogsAlerta(banco, (erroContagem, totalLogs) => {
+      if (erroContagem) {
+        responderJson(res, 500, { erro: 'Erro ao contar logs de alerta.' });
         return;
       }
 
-      responderJson(res, 200, {
-        total: Array.isArray(logs) ? logs.length : 0,
-        logs: logs || [],
+      const totalPaginas = Math.max(1, Math.ceil(totalLogs / limite));
+      const paginaAtual = Math.min(paginaSolicitada, totalPaginas);
+      const offset = (paginaAtual - 1) * limite;
+
+      db.listarLogsAlerta(banco, limite, offset, (erro, logs) => {
+        if (erro) {
+          responderJson(res, 500, { erro: 'Erro ao listar logs de alerta.' });
+          return;
+        }
+
+        responderJson(res, 200, {
+          total: totalLogs,
+          limite,
+          paginaAtual,
+          totalPaginas,
+          logs: logs || [],
+        });
       });
     });
     return true;
