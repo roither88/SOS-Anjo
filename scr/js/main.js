@@ -3,8 +3,8 @@
    ============================= */
 
 // Em producao (Render), usa mesma origem. Em dev fora da porta 3000, usa localhost:3000.
-const estaEmAmbienteLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-const API_BASE = estaEmAmbienteLocal && window.location.port !== "3000"
+const estaEmAmbienteLocal = globalThis.location.hostname === "localhost" || globalThis.location.hostname === "127.0.0.1";
+const API_BASE = estaEmAmbienteLocal && globalThis.location.port !== "3000"
   ? "http://localhost:3000"
   : "";
 
@@ -259,7 +259,7 @@ async function preencherPaginaEdicaoUsuario() {
   const usuarioEdicao = carregarEdicaoUsuario();
   if (!usuarioEdicao) {
     alert("Nenhum usuario foi selecionado para edicao.");
-    window.location.href = "admin.html";
+    globalThis.location.href = "admin.html";
     return;
   }
 
@@ -281,7 +281,7 @@ function preencherCamposCallMeBot() {
 
 // Carrega a lista de locais cadastrados no backend para preencher um select.
 async function carregarLocaisSelect(selectElement) {
-  if (!selectElement || selectElement.tagName !== "SELECT") {
+  if (selectElement?.tagName !== "SELECT") {
     return;
   }
 
@@ -311,8 +311,8 @@ async function carregarLocaisSelect(selectElement) {
       option.textContent = nomeLocal;
       selectElement.appendChild(option);
     });
-  } catch (erro) {
-    console.warn("Falha ao carregar locais:", erro.message);
+  } catch (error_) {
+    console.warn("Falha ao carregar locais:", error_.message);
     selectElement.innerHTML = '<option value="">Selecione um local</option>';
   }
 }
@@ -367,14 +367,14 @@ async function dispararPanico(usuario, localUsuario) {
 
   // Verifica se o CallMeBot indicou erro na resposta HTML
   if (respostaTexto.toLowerCase().includes("invalid") || respostaTexto.toLowerCase().includes("error")) {
-    throw new Error("CallMeBot rejeitou: " + respostaTexto.replace(/<[^>]+>/g, " ").trim());
+    throw new Error("CallMeBot rejeitou: " + respostaTexto.replaceAll(/<[^>]+>/g, " ").trim());
   }
 }
 
 // Registra no backend eventos de clique relacionados ao alerta.
 async function registrarEventoAlerta(status, detalhe) {
-  const usuarioNome = (usuarioLogado && usuarioLogado.nome) || "Nao autenticado";
-  const usuarioLocal = (usuarioLogado && usuarioLogado.local) || "Nao informado";
+  const usuarioNome = (usuarioLogado?.nome) || "Nao autenticado";
+  const usuarioLocal = (usuarioLogado?.local) || "Nao informado";
 
   try {
     await fetch(`${API_BASE}/api/alerta/evento`, {
@@ -387,8 +387,8 @@ async function registrarEventoAlerta(status, detalhe) {
         detalhe,
       }),
     });
-  } catch (erro) {
-    console.warn("Falha ao registrar evento de alerta:", erro.message);
+  } catch (error_) {
+    console.warn("Falha ao registrar evento de alerta:", error_.message);
   }
 }
 
@@ -475,7 +475,7 @@ async function salvarEdicaoUsuarioFormulario() {
   const resultado = await atualizarUsuarioAdmin(usuarioId, nomeUsuario, localIdUsuario, senhaUsuario);
   salvarEstadoEdicaoUsuario(null);
   alert(resultado.mensagem || "Usuario atualizado com sucesso.");
-  window.location.href = "admin.html";
+  globalThis.location.href = "admin.html";
 }
 
 // Faz login consultando backend por nome e senha e salva sessao local.
@@ -688,15 +688,15 @@ async function aoClicarEmergencia() {
   try {
     // Tenta buscar dados atualizados do banco; se falhar, usa os dados da sessao.
     const usuarioBanco = await buscarUsuarioNoBanco(usuarioLogado.nome);
-    const nomeFinal  = (usuarioBanco && usuarioBanco.nome)  || usuarioLogado.nome  || "Usuario";
-    const localFinal = (usuarioBanco && usuarioBanco.local) || usuarioLogado.local || "Local nao informado";
+    const nomeFinal  = (usuarioBanco?.nome)  || usuarioLogado.nome  || "Usuario";
+    const localFinal = (usuarioBanco?.local) || usuarioLogado.local || "Local nao informado";
 
     console.log("Disparando panico para:", nomeFinal, localFinal);
     await dispararPanico(nomeFinal, localFinal);
     alert("✅ Alerta enviado com sucesso para o WhatsApp!");
-  } catch (erro) {
-    console.error("Erro ao disparar emergencia:", erro);
-    alert("❌ Erro ao enviar alerta: " + erro.message);
+  } catch (error_) {
+    console.error("Erro ao disparar emergencia:", error_);
+    alert("❌ Erro ao enviar alerta: " + error_.message);
   }
 }
 
@@ -714,15 +714,15 @@ async function aoClicarSalvarUsuario() {
   }
 
   try {
-    if (idUsuarioEditar && idUsuarioEditar.value) {
+    if (idUsuarioEditar?.value) {
       await salvarEdicaoUsuarioFormulario();
       return;
     }
 
     await salvarUsuario();
-  } catch (erro) {
-    console.error(erro);
-    alert(erro.message);
+  } catch (error_) {
+    console.error(error_);
+    alert(error_.message);
   }
 }
 
@@ -730,9 +730,9 @@ async function aoClicarSalvarUsuario() {
 async function aoClicarLogin() {
   try {
     await fazerLogin();
-  } catch (erro) {
-    console.error(erro);
-    alert(erro.message);
+  } catch (error_) {
+    console.error(error_);
+    alert(error_.message);
   }
 }
 
@@ -745,23 +745,23 @@ function aoClicarLogout() {
 
 // Navega para tela de cadastro.
 function aoClicarIrCadastro() {
-  window.location.href = "cadastro.html";
+  globalThis.location.href = "cadastro.html";
 }
 
 // Navega para tela inicial.
 function aoClicarIrInicio() {
-  window.location.href = "index.html";
+  globalThis.location.href = "index.html";
 }
 
 // Navega para a tela de administracao.
 function aoClicarIrAdmin() {
   sincronizarSessaoAdminComUsuario();
-  window.location.href = "admin.html";
+  globalThis.location.href = "admin.html";
 }
 
 // Navega para o painel de alertas.
 function aoClicarIrAlertas() {
-  window.location.href = "alertas.html";
+  globalThis.location.href = "alertas.html";
 }
 
 // Ajusta texto de aviso na tela administrativa com cor semantica.
@@ -829,14 +829,14 @@ function renderizarUsuariosAdmin(usuarios) {
           <button
             class="botao-navbar secundario admin-acao-editar"
             data-id="${usuario.id}"
-            data-nome="${String(usuario.nome || "").replace(/"/g, "&quot;")}"
-            data-local="${String(usuario.local || "").replace(/"/g, "&quot;")}"
+            data-nome="${String(usuario.nome || "").replaceAll('"', "&quot;")}"
+            data-local="${String(usuario.local || "").replaceAll('"', "&quot;")}"
             data-local-id="${usuario.local_id ?? ""}"
           >EDITAR</button>
           <button
             class="botao-navbar secundario admin-acao-remover"
             data-id="${usuario.id}"
-            data-nome="${String(usuario.nome || "").replace(/"/g, "&quot;")}"
+            data-nome="${String(usuario.nome || "").replaceAll('"', "&quot;")}"
           >REMOVER</button>
         </div>
       </td>
@@ -890,8 +890,8 @@ async function atualizarPainelAdmin() {
   try {
     const logs = await listarLogsAlertaAdmin(20);
     renderizarLogsAlertaAdmin(logs);
-  } catch (erroLogs) {
-    console.error("Falha ao carregar logs de alerta:", erroLogs);
+  } catch (error_) {
+    console.error("Falha ao carregar logs de alerta:", error_);
     renderizarLogsAlertaAdmin([]);
   }
 
@@ -928,9 +928,9 @@ async function inicializarPaginaAdmin() {
 
     exibirBlocoAdmin(adminBlocoLogin);
     mostrarAvisoAdmin("Entre com nome e senha de administrador.");
-  } catch (erro) {
-    console.error(erro);
-    mostrarAvisoAdmin(erro.message, "erro");
+  } catch (error_) {
+    console.error(error_);
+    mostrarAvisoAdmin(error_.message, "erro");
   }
 }
 
@@ -946,9 +946,9 @@ async function aoClicarCriarAdmin() {
     sincronizarSessaoUsuarioComAdmin();
     exibirBlocoAdmin(adminPainel);
     await atualizarPainelAdmin();
-  } catch (erro) {
-    console.error(erro);
-    mostrarAvisoAdmin(erro.message, "erro");
+  } catch (error_) {
+    console.error(error_);
+    mostrarAvisoAdmin(error_.message, "erro");
   }
 }
 
@@ -964,9 +964,9 @@ async function aoClicarAdminLogin() {
     sincronizarSessaoUsuarioComAdmin();
     exibirBlocoAdmin(adminPainel);
     await atualizarPainelAdmin();
-  } catch (erro) {
-    console.error(erro);
-    mostrarAvisoAdmin(erro.message, "erro");
+  } catch (error_) {
+    console.error(error_);
+    mostrarAvisoAdmin(error_.message, "erro");
   }
 }
 
@@ -980,92 +980,112 @@ async function aoClicarAdminLogout() {
 async function aoClicarAdminAtualizar() {
   try {
     await atualizarPainelAdmin();
-  } catch (erro) {
-    console.error(erro);
-    mostrarAvisoAdmin(erro.message, "erro");
+  } catch (error_) {
+    console.error(error_);
+    mostrarAvisoAdmin(error_.message, "erro");
+  }
+}
+
+function obterAlvoEvento(evento) {
+  const alvo = evento.target;
+  return alvo instanceof HTMLElement ? alvo : null;
+}
+
+function obterIdUsuarioValido(valorId) {
+  const idUsuario = Number(valorId);
+  return Number.isInteger(idUsuario) && idUsuario > 0 ? idUsuario : null;
+}
+
+async function processarAcaoPerfilAdmin(botaoPerfil) {
+  const idUsuario = obterIdUsuarioValido(botaoPerfil.dataset.id);
+  const novoAdmin = Number(botaoPerfil.dataset.admin) === 1 ? 1 : 0;
+
+  if (!idUsuario) {
+    mostrarAvisoAdmin("Usuario invalido para atualizacao de perfil.", "erro");
+    return;
+  }
+
+  try {
+    const resultado = await atualizarPerfilAdmin(idUsuario, novoAdmin);
+    await atualizarPainelAdmin();
+    if (resultado?.mensagem) {
+      mostrarAvisoAdmin(resultado.mensagem, "sucesso");
+    }
+  } catch (error_) {
+    console.error(error_);
+    mostrarAvisoAdmin(error_.message, "erro");
+  }
+}
+
+function processarAcaoEditarAdmin(botaoEditar) {
+  const idUsuario = obterIdUsuarioValido(botaoEditar.dataset.id);
+  const nomeAtual = String(botaoEditar.dataset.nome || "").trim();
+  const localAtual = String(botaoEditar.dataset.local || "").trim();
+  const localIdAtual = Number(botaoEditar.dataset.localId || 0);
+
+  if (!idUsuario) {
+    mostrarAvisoAdmin("Usuario invalido para edicao.", "erro");
+    return;
+  }
+
+  salvarEstadoEdicaoUsuario({
+    id: idUsuario,
+    nome: nomeAtual,
+    local: localAtual,
+    local_id: Number.isInteger(localIdAtual) && localIdAtual > 0 ? localIdAtual : null,
+  });
+
+  globalThis.location.href = "editar.html";
+}
+
+async function processarAcaoRemoverAdmin(botaoRemover) {
+  const idUsuario = obterIdUsuarioValido(botaoRemover.dataset.id);
+  const nomeUsuario = String(botaoRemover.dataset.nome || "Usuario");
+
+  if (!idUsuario) {
+    mostrarAvisoAdmin("Usuario invalido para remocao.", "erro");
+    return;
+  }
+
+  const confirmou = globalThis.confirm(`Deseja remover o usuario ${nomeUsuario}?`);
+  if (!confirmou) {
+    return;
+  }
+
+  try {
+    const resultado = await removerUsuarioAdmin(idUsuario);
+    await atualizarPainelAdmin();
+    if (resultado?.mensagem) {
+      mostrarAvisoAdmin(resultado.mensagem, "sucesso");
+    }
+  } catch (error_) {
+    console.error(error_);
+    mostrarAvisoAdmin(error_.message, "erro");
   }
 }
 
 // Processa clique nos botoes de promover/rebaixar dentro da tabela.
 async function aoClicarAcaoPerfilAdmin(evento) {
-  const alvo = evento.target;
-  if (!(alvo instanceof HTMLElement)) {
+  const alvo = obterAlvoEvento(evento);
+  if (!alvo) {
     return;
   }
 
   const botaoPerfil = alvo.closest(".admin-acao-perfil");
   if (botaoPerfil) {
-    const idUsuario = Number(botaoPerfil.getAttribute("data-id"));
-    const novoAdmin = Number(botaoPerfil.getAttribute("data-admin")) === 1 ? 1 : 0;
-
-    if (!Number.isInteger(idUsuario) || idUsuario <= 0) {
-      mostrarAvisoAdmin("Usuario invalido para atualizacao de perfil.", "erro");
-      return;
-    }
-
-    try {
-      const resultado = await atualizarPerfilAdmin(idUsuario, novoAdmin);
-      await atualizarPainelAdmin();
-      if (resultado && resultado.mensagem) {
-        mostrarAvisoAdmin(resultado.mensagem, "sucesso");
-      }
-    } catch (erro) {
-      console.error(erro);
-      mostrarAvisoAdmin(erro.message, "erro");
-    }
-
+    await processarAcaoPerfilAdmin(botaoPerfil);
     return;
   }
 
   const botaoEditar = alvo.closest(".admin-acao-editar");
   if (botaoEditar) {
-    const idUsuario = Number(botaoEditar.getAttribute("data-id"));
-    const nomeAtual = String(botaoEditar.getAttribute("data-nome") || "").trim();
-    const localAtual = String(botaoEditar.getAttribute("data-local") || "").trim();
-    const localIdAtual = Number(botaoEditar.getAttribute("data-local-id") || 0);
-
-    if (!Number.isInteger(idUsuario) || idUsuario <= 0) {
-      mostrarAvisoAdmin("Usuario invalido para edicao.", "erro");
-      return;
-    }
-
-    salvarEstadoEdicaoUsuario({
-      id: idUsuario,
-      nome: nomeAtual,
-      local: localAtual,
-      local_id: Number.isInteger(localIdAtual) && localIdAtual > 0 ? localIdAtual : null,
-    });
-
-    window.location.href = "editar.html";
-
+    processarAcaoEditarAdmin(botaoEditar);
     return;
   }
 
   const botaoRemover = alvo.closest(".admin-acao-remover");
   if (botaoRemover) {
-    const idUsuario = Number(botaoRemover.getAttribute("data-id"));
-    const nomeUsuario = String(botaoRemover.getAttribute("data-nome") || "Usuario");
-
-    if (!Number.isInteger(idUsuario) || idUsuario <= 0) {
-      mostrarAvisoAdmin("Usuario invalido para remocao.", "erro");
-      return;
-    }
-
-    const confirmou = window.confirm(`Deseja remover o usuario ${nomeUsuario}?`);
-    if (!confirmou) {
-      return;
-    }
-
-    try {
-      const resultado = await removerUsuarioAdmin(idUsuario);
-      await atualizarPainelAdmin();
-      if (resultado && resultado.mensagem) {
-        mostrarAvisoAdmin(resultado.mensagem, "sucesso");
-      }
-    } catch (erro) {
-      console.error(erro);
-      mostrarAvisoAdmin(erro.message, "erro");
-    }
+    await processarAcaoRemoverAdmin(botaoRemover);
   }
 }
 
