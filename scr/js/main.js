@@ -16,7 +16,11 @@ const STORAGE_ADMIN = "sos_anjo_admin_logado";
 const STORAGE_CMB_TELEFONE = "sos_anjo_cmb_telefone";
 const STORAGE_CMB_APIKEY   = "sos_anjo_cmb_apikey";
 const STORAGE_EDICAO_USUARIO = "sos_anjo_edicao_usuario";
+<<<<<<< HEAD
 const STORAGE_ALERTA_SONORO_ATIVO = "sos_anjo_alerta_sonoro_ativo";
+=======
+const STORAGE_ALERTAS_SYNC = "sos_anjo_alertas_sync";
+>>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
 
 // Valores padrao do CallMeBot (usados se nada estiver salvo no navegador).
 const CMB_TELEFONE_PADRAO = "554799107264";
@@ -86,6 +90,7 @@ let totalPaginasLogs = 1;
 // Estado em memoria do usuario atual; inicia tentando restaurar do localStorage.
 let usuarioLogado = carregarSessaoUsuario();
 let adminLogado = carregarSessaoAdmin();
+<<<<<<< HEAD
 let alertaSonoroAtivo = carregarEstadoAlertaSonoro();
 
 function carregarEstadoAlertaSonoro() {
@@ -108,6 +113,12 @@ function salvarEstadoAlertaSonoro(ativo) {
     // Ignora falhas de persistencia para nao interromper o fluxo do alerta.
   }
 }
+=======
+let alertaSonoroAtivo = false;
+let alertaAudioContext = null;
+let alertaOscilador = null;
+let alertaIntervaloTom = null;
+>>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
 
 function atualizarVisibilidadeBotaoAlerta() {
   if (!botaoDesativarAlerta) {
@@ -117,6 +128,7 @@ function atualizarVisibilidadeBotaoAlerta() {
   botaoDesativarAlerta.classList.toggle("oculto", !alertaSonoroAtivo);
 }
 
+<<<<<<< HEAD
 async function ativarSomAlerta(manterAtivoEmFalha = false) {
   if (!(audioAlerta instanceof HTMLAudioElement)) {
     return;
@@ -133,10 +145,86 @@ async function ativarSomAlerta(manterAtivoEmFalha = false) {
   }
 
   salvarEstadoAlertaSonoro(alertaSonoroAtivo);
+=======
+function iniciarTomFallbackAlerta() {
+  if (alertaOscilador) {
+    return true;
+  }
+
+  try {
+    const AudioContextClasse = globalThis.AudioContext || globalThis.webkitAudioContext;
+    if (!AudioContextClasse) {
+      return false;
+    }
+
+    alertaAudioContext = alertaAudioContext || new AudioContextClasse();
+    const ganho = alertaAudioContext.createGain();
+    alertaOscilador = alertaAudioContext.createOscillator();
+
+    alertaOscilador.type = "sine";
+    alertaOscilador.frequency.setValueAtTime(900, alertaAudioContext.currentTime);
+    ganho.gain.setValueAtTime(0.12, alertaAudioContext.currentTime);
+
+    alertaOscilador.connect(ganho);
+    ganho.connect(alertaAudioContext.destination);
+    alertaOscilador.start();
+
+    alertaIntervaloTom = globalThis.setInterval(() => {
+      if (!alertaOscilador || !alertaAudioContext) {
+        return;
+      }
+
+      const agora = alertaAudioContext.currentTime;
+      alertaOscilador.frequency.setValueAtTime(900, agora);
+      alertaOscilador.frequency.setValueAtTime(650, agora + 0.2);
+      alertaOscilador.frequency.setValueAtTime(900, agora + 0.4);
+    }, 1500);
+
+    return true;
+  } catch (error_) {
+    console.warn("Nao foi possivel iniciar tom de alerta alternativo:", error_);
+    return false;
+  }
+}
+
+function pararTomFallbackAlerta() {
+  if (alertaIntervaloTom) {
+    globalThis.clearInterval(alertaIntervaloTom);
+    alertaIntervaloTom = null;
+  }
+
+  if (alertaOscilador) {
+    try {
+      alertaOscilador.stop();
+    } catch (error_) {
+      console.debug("Oscilador de alerta ja estava parado:", error_);
+    }
+    alertaOscilador = null;
+  }
+}
+
+async function ativarSomAlerta() {
+  if (audioAlerta instanceof HTMLAudioElement) {
+    audioAlerta.currentTime = 0;
+
+    try {
+      await audioAlerta.play();
+      alertaSonoroAtivo = true;
+      atualizarVisibilidadeBotaoAlerta();
+      return;
+    } catch (error_) {
+      console.warn("Nao foi possivel reproduzir o arquivo de audio do alerta:", error_);
+    }
+  }
+
+  alertaSonoroAtivo = iniciarTomFallbackAlerta();
+
+>>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
   atualizarVisibilidadeBotaoAlerta();
 }
 
 function desativarSomAlerta() {
+<<<<<<< HEAD
   if (!(audioAlerta instanceof HTMLAudioElement)) {
     return;
   }
@@ -200,11 +288,82 @@ async function desativarChamadasAtivasDoUsuario() {
   } catch (error_) {
     console.warn("Nao foi possivel desativar chamadas no painel:", error_);
   }
+=======
+  if (audioAlerta instanceof HTMLAudioElement) {
+    audioAlerta.pause();
+    audioAlerta.currentTime = 0;
+  }
+
+  pararTomFallbackAlerta();
+  alertaSonoroAtivo = false;
+  atualizarVisibilidadeBotaoAlerta();
+}
+
+async function desativarAlertasAtivosDoUsuario() {
+  if (!usuarioLogado?.nome) {
+    return 0;
+  }
+
+  const response = await fetch(`${API_BASE}/api/alertas/ativos`);
+  const resultado = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(resultado.erro || "Não foi possível consultar os alertas ativos.");
+  }
+
+  const nomeLogado = String(usuarioLogado.nome || "").trim().toLowerCase();
+  const alertas = Array.isArray(resultado.alertas) ? resultado.alertas : [];
+  const alertasDoUsuario = alertas.filter((item) => {
+    const nomeAlerta = String(item.usuario_nome || "").trim().toLowerCase();
+    return nomeAlerta === nomeLogado;
+  });
+
+  if (!alertasDoUsuario.length) {
+    return 0;
+  }
+
+  const respostas = await Promise.all(alertasDoUsuario.map((item) => (
+    fetch(`${API_BASE}/api/alertas/desativar/${encodeURIComponent(String(item.id))}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    })
+  )));
+
+  for (const respostaAtual of respostas) {
+    if (!respostaAtual.ok) {
+      const corpoErro = await respostaAtual.json().catch(() => ({}));
+      throw new Error(corpoErro.erro || "Falha ao desativar alerta no painel.");
+    }
+  }
+
+  return alertasDoUsuario.length;
+>>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
 }
 
 async function aoClicarDesativarAlerta() {
   desativarSomAlerta();
+<<<<<<< HEAD
   await desativarChamadasAtivasDoUsuario();
+=======
+
+  try {
+    const totalDesativado = await desativarAlertasAtivosDoUsuario();
+    localStorage.setItem(STORAGE_ALERTAS_SYNC, JSON.stringify({
+      origem: "index",
+      acao: "desativacao_usuario",
+      ts: Date.now(),
+      totalDesativado,
+    }));
+
+    await registrarEventoAlerta(
+      "som_desativado_usuario",
+      `Alarme desativado pelo usuário na tela inicial. Alertas desativados no painel: ${totalDesativado}.`
+    );
+  } catch (error_) {
+    console.error("Falha ao sincronizar desativacao do alerta:", error_);
+    alert(`O som foi desativado, mas houve falha ao sincronizar no painel: ${error_.message}`);
+  }
+>>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
 }
 
 // Retorna o valor de um input de forma segura (quando o elemento existe).
@@ -386,7 +545,11 @@ async function preencherPaginaEdicaoUsuario() {
 
   const usuarioEdicao = carregarEdicaoUsuario();
   if (!usuarioEdicao) {
+<<<<<<< HEAD
     alert("Nenhum usuario foi selecionado para edicao.");
+=======
+    alert("Nenhum usuário foi selecionado para edição.");
+>>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
     globalThis.location.href = "admin.html";
     return;
   }
@@ -418,7 +581,7 @@ async function carregarLocaisSelect(selectElement) {
     const resultado = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      throw new Error(resultado.erro || "Nao foi possivel carregar os locais.");
+      throw new Error(resultado.erro || "Não foi possível carregar os locais.");
     }
 
     const locais = Array.isArray(resultado.locais) ? resultado.locais : [];
@@ -468,7 +631,7 @@ async function dispararPanico(usuario, localUsuario) {
   const dataHora = new Date().toLocaleString("pt-BR");
   // Usando \n real (nao \\n) para quebrar linhas corretamente no WhatsApp
   const texto = "ALERTA SOS-ANJO" + "\n" +
-    "Usuario: " + usuario + "\n" +
+    "Usuário: " + usuario + "\n" +
     "Local: " + localUsuario + "\n" +
     "Data/Hora: " + dataHora;
 
@@ -501,8 +664,13 @@ async function dispararPanico(usuario, localUsuario) {
 
 // Registra no backend eventos de clique relacionados ao alerta.
 async function registrarEventoAlerta(status, detalhe) {
+<<<<<<< HEAD
   const usuarioNome = (usuarioLogado?.nome) || "Nao autenticado";
   const usuarioLocal = (usuarioLogado?.local) || "Nao informado";
+=======
+  const usuarioNome = usuarioLogado?.nome || "Não autenticado";
+  const usuarioLocal = usuarioLogado?.local || "Não informado";
+>>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
 
   try {
     await fetch(`${API_BASE}/api/alerta/evento`, {
@@ -534,7 +702,7 @@ async function buscarUsuarioNoBanco(nomeUsuario) {
 
     return resultado;
   } catch (err) {
-    console.warn("Servidor nao disponivel, usando dados da sessao:", err.message);
+    console.warn("Servidor não disponível, usando dados da sessão:", err.message);
     return null;
   }
 }
@@ -546,12 +714,12 @@ async function salvarUsuario() {
   const senhaUsuario = valorInput(senhaCadastro);
 
   if (!nomeUsuario) {
-    alert("Informe o nome do usuario.");
+    alert("Informe o nome do usuário.");
     return;
   }
 
   if (!Number.isInteger(localIdUsuario) || localIdUsuario <= 0) {
-    alert("Selecione um local valido.");
+    alert("Selecione um local válido.");
     return;
   }
 
@@ -568,10 +736,10 @@ async function salvarUsuario() {
   const resultado = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(resultado.erro || "Nao foi possivel salvar o usuario.");
+    throw new Error(resultado.erro || "Não foi possível salvar o usuário.");
   }
 
-  alert(`Usuario salvo: ${resultado.nome}`);
+  alert(`Usuário salvo: ${resultado.nome}`);
 }
 
 // Salva alteracoes de um usuario na pagina de edicao.
@@ -586,23 +754,27 @@ async function salvarEdicaoUsuarioFormulario() {
   const senhaUsuario = valorInput(senhaCadastro);
 
   if (!Number.isInteger(usuarioId) || usuarioId <= 0) {
-    alert("Usuario de edicao invalido.");
+    alert("Usuário de edição inválido.");
     return;
   }
 
   if (!nomeUsuario) {
-    alert("Informe o nome do usuario.");
+    alert("Informe o nome do usuário.");
     return;
   }
 
   if (!Number.isInteger(localIdUsuario) || localIdUsuario <= 0) {
-    alert("Selecione um local valido.");
+    alert("Selecione um local válido.");
     return;
   }
 
   const resultado = await atualizarUsuarioAdmin(usuarioId, nomeUsuario, localIdUsuario, senhaUsuario);
   salvarEstadoEdicaoUsuario(null);
+<<<<<<< HEAD
   alert(resultado.mensagem || "Usuario atualizado com sucesso.");
+=======
+  alert(resultado.mensagem || "Usuário atualizado com sucesso.");
+>>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
   globalThis.location.href = "admin.html";
 }
 
@@ -625,7 +797,7 @@ async function fazerLogin() {
   const resultado = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(resultado.erro || "Nao foi possivel fazer login.");
+    throw new Error(resultado.erro || "Não foi possível fazer login.");
   }
 
   salvarSessaoUsuario(resultado);
@@ -650,7 +822,7 @@ async function buscarStatusAdmin() {
   const resultado = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(resultado.erro || "Nao foi possivel consultar o status de administrador.");
+    throw new Error(resultado.erro || "Não foi possível consultar o status de administrador.");
   }
 
   return resultado;
@@ -680,7 +852,7 @@ async function criarAdminInicial() {
   const resultado = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(resultado.erro || "Nao foi possivel criar o administrador inicial.");
+    throw new Error(resultado.erro || "Não foi possível criar o administrador inicial.");
   }
 
   return resultado;
@@ -705,7 +877,7 @@ async function fazerLoginAdmin() {
   const resultado = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(resultado.erro || "Nao foi possivel autenticar administrador.");
+    throw new Error(resultado.erro || "Não foi possível autenticar administrador.");
   }
 
   return resultado;
@@ -717,7 +889,7 @@ async function listarUsuariosAdmin() {
   const resultado = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(resultado.erro || "Nao foi possivel carregar os usuarios.");
+    throw new Error(resultado.erro || "Não foi possível carregar os usuários.");
   }
 
   return Array.isArray(resultado.usuarios) ? resultado.usuarios : [];
@@ -731,7 +903,7 @@ async function listarLogsAlertaAdmin(pagina = 1, limite = LOGS_POR_PAGINA) {
   const resultado = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(resultado.erro || "Nao foi possivel carregar os logs de alerta.");
+    throw new Error(resultado.erro || "Não foi possível carregar os logs de alerta.");
   }
 
   return {
@@ -752,7 +924,7 @@ async function atualizarPerfilAdmin(idUsuario, admin) {
   const resultado = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(resultado.erro || "Nao foi possivel atualizar o perfil do usuario.");
+    throw new Error(resultado.erro || "Não foi possível atualizar o perfil do usuário.");
   }
 
   return resultado;
@@ -779,7 +951,7 @@ async function atualizarUsuarioAdmin(idUsuario, nomeUsuario, localUsuario, novaS
   const resultado = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(resultado.erro || "Nao foi possivel atualizar os dados do usuario.");
+    throw new Error(resultado.erro || "Não foi possível atualizar os dados do usuário.");
   }
 
   return resultado;
@@ -796,7 +968,7 @@ async function removerUsuarioAdmin(idUsuario) {
   const resultado = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(resultado.erro || "Nao foi possivel remover o usuario.");
+    throw new Error(resultado.erro || "Não foi possível remover o usuário.");
   }
 
   return resultado;
@@ -808,22 +980,30 @@ async function removerUsuarioAdmin(idUsuario) {
 
 // Handler do botao de emergencia na tela principal.
 async function aoClicarEmergencia() {
-  console.log("Botao de emergencia clicado.");
+  console.log("Botão de emergência clicado.");
 
   await registrarEventoAlerta(
     "botao_emergencia_clicado",
-    usuarioLogado ? "Clique no botao de emergencia." : "Clique sem usuario autenticado."
+    usuarioLogado ? "Clique no botão de emergência." : "Clique sem usuário autenticado."
   );
 
   if (!exigirLogin()) {
     return;
   }
 
+  // Inicia o som no contexto direto do clique para evitar bloqueio de autoplay.
+  await ativarSomAlerta();
+
   try {
     // Tenta buscar dados atualizados do banco; se falhar, usa os dados da sessao.
     const usuarioBanco = await buscarUsuarioNoBanco(usuarioLogado.nome);
+<<<<<<< HEAD
     const nomeFinal  = (usuarioBanco?.nome)  || usuarioLogado.nome  || "Usuario";
     const localFinal = (usuarioBanco?.local) || usuarioLogado.local || "Local nao informado";
+=======
+    const nomeFinal  = usuarioBanco?.nome || usuarioLogado.nome || "Usuário";
+    const localFinal = usuarioBanco?.local || usuarioLogado.local || "Local não informado";
+>>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
 
     console.log("Disparando panico para:", nomeFinal, localFinal);
     await dispararPanico(nomeFinal, localFinal);
@@ -938,14 +1118,14 @@ function renderizarUsuariosAdmin(usuarios) {
   adminTabelaCorpo.innerHTML = "";
 
   if (!usuarios.length) {
-    adminTabelaCorpo.innerHTML = '<tr><td colspan="5">Nenhum usuario cadastrado.</td></tr>';
+    adminTabelaCorpo.innerHTML = '<tr><td colspan="5">Nenhum usuário cadastrado.</td></tr>';
     return;
   }
 
   usuarios.forEach((usuario) => {
     const linha = document.createElement("tr");
     const eAdmin = Number(usuario.admin) === 1;
-    const perfil = eAdmin ? "Administrador" : "Usuario";
+    const perfil = eAdmin ? "Administrador" : "Usuário";
     const acaoTexto = eAdmin ? "REBAIXAR" : "PROMOVER";
     const novoPerfil = eAdmin ? 0 : 1;
 
@@ -1053,7 +1233,12 @@ async function atualizarPainelAdmin() {
   renderizarUsuariosAdmin(usuarios);
 
   try {
+<<<<<<< HEAD
     await atualizarLogsAdmin(paginaLogsAtual);
+=======
+    const logs = await listarLogsAlertaAdmin(20);
+    renderizarLogsAlertaAdmin(logs);
+>>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
   } catch (error_) {
     console.error("Falha ao carregar logs de alerta:", error_);
     renderizarLogsAlertaAdmin([]);
@@ -1154,6 +1339,7 @@ async function aoClicarAdminAtualizar() {
   }
 }
 
+<<<<<<< HEAD
 async function aoClicarPaginacaoLogsAdmin(evento) {
   const alvo = obterAlvoEvento(evento);
   if (!alvo) {
@@ -1194,6 +1380,14 @@ async function processarAcaoPerfilAdmin(botaoPerfil) {
 
   if (!idUsuario) {
     mostrarAvisoAdmin("Usuario invalido para atualizacao de perfil.", "erro");
+=======
+async function processarAcaoPerfilAdmin(botaoPerfil) {
+  const idUsuario = Number(botaoPerfil.dataset.id);
+  const novoAdmin = Number(botaoPerfil.dataset.admin) === 1 ? 1 : 0;
+
+  if (!Number.isInteger(idUsuario) || idUsuario <= 0) {
+    mostrarAvisoAdmin("Usuário inválido para atualização de perfil.", "erro");
+>>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
     return;
   }
 
@@ -1210,13 +1404,22 @@ async function processarAcaoPerfilAdmin(botaoPerfil) {
 }
 
 function processarAcaoEditarAdmin(botaoEditar) {
+<<<<<<< HEAD
   const idUsuario = obterIdUsuarioValido(botaoEditar.dataset.id);
+=======
+  const idUsuario = Number(botaoEditar.dataset.id);
+>>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
   const nomeAtual = String(botaoEditar.dataset.nome || "").trim();
   const localAtual = String(botaoEditar.dataset.local || "").trim();
   const localIdAtual = Number(botaoEditar.dataset.localId || 0);
 
+<<<<<<< HEAD
   if (!idUsuario) {
     mostrarAvisoAdmin("Usuario invalido para edicao.", "erro");
+=======
+  if (!Number.isInteger(idUsuario) || idUsuario <= 0) {
+    mostrarAvisoAdmin("Usuário inválido para edição.", "erro");
+>>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
     return;
   }
 
@@ -1231,6 +1434,7 @@ function processarAcaoEditarAdmin(botaoEditar) {
 }
 
 async function processarAcaoRemoverAdmin(botaoRemover) {
+<<<<<<< HEAD
   const idUsuario = obterIdUsuarioValido(botaoRemover.dataset.id);
   const nomeUsuario = String(botaoRemover.dataset.nome || "Usuario");
 
@@ -1240,6 +1444,17 @@ async function processarAcaoRemoverAdmin(botaoRemover) {
   }
 
   const confirmou = globalThis.confirm(`Deseja remover o usuario ${nomeUsuario}?`);
+=======
+  const idUsuario = Number(botaoRemover.dataset.id);
+  const nomeUsuario = String(botaoRemover.dataset.nome || "Usuário");
+
+  if (!Number.isInteger(idUsuario) || idUsuario <= 0) {
+    mostrarAvisoAdmin("Usuário inválido para remoção.", "erro");
+    return;
+  }
+
+  const confirmou = globalThis.confirm(`Deseja remover o usuário ${nomeUsuario}?`);
+>>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
   if (!confirmou) {
     return;
   }
@@ -1293,6 +1508,7 @@ function registrarEventos() {
     }
   };
 
+<<<<<<< HEAD
   vincularEventoClique(botao, aoClicarEmergencia);
   vincularEventoClique(botaoDesativarAlerta, aoClicarDesativarAlerta);
   vincularEventoClique(salvarBotao, aoClicarSalvarUsuario);
@@ -1309,11 +1525,69 @@ function registrarEventos() {
   vincularEventoClique(btnAdminAtualizar, aoClicarAdminAtualizar);
   vincularEventoClique(adminLogsPaginacao, aoClicarPaginacaoLogsAdmin);
   vincularEventoClique(adminTabelaCorpo, aoClicarAcaoPerfilAdmin);
+=======
+  if (botaoDesativarAlerta) {
+    botaoDesativarAlerta.addEventListener("click", aoClicarDesativarAlerta);
+  }
+
+  if (salvarBotao) {
+    salvarBotao.addEventListener("click", aoClicarSalvarUsuario);
+  }
+
+  if (btnLogin) {
+    btnLogin.addEventListener("click", aoClicarLogin);
+  }
+
+  if (btnLogout) {
+    btnLogout.addEventListener("click", aoClicarLogout);
+  }
+
+  if (btnIrCadastro) {
+    btnIrCadastro.addEventListener("click", aoClicarIrCadastro);
+  }
+
+  if (btnIrCadastroPainel) {
+    btnIrCadastroPainel.addEventListener("click", aoClicarIrCadastro);
+  }
+
+  if (btnIrInicio) {
+    btnIrInicio.addEventListener("click", aoClicarIrInicio);
+  }
+
+  if (btnIrAdmin) {
+    btnIrAdmin.addEventListener("click", aoClicarIrAdmin);
+  }
+
+  if (btnIrAlertas) {
+    btnIrAlertas.addEventListener("click", aoClicarIrAlertas);
+  }
+
+  if (btnCriarAdmin) {
+    btnCriarAdmin.addEventListener("click", aoClicarCriarAdmin);
+  }
+
+  if (btnAdminLogin) {
+    btnAdminLogin.addEventListener("click", aoClicarAdminLogin);
+  }
+
+  if (btnAdminLogout) {
+    btnAdminLogout.addEventListener("click", aoClicarAdminLogout);
+  }
+
+  if (btnAdminAtualizar) {
+    btnAdminAtualizar.addEventListener("click", aoClicarAdminAtualizar);
+  }
+
+  if (adminTabelaCorpo) {
+    adminTabelaCorpo.addEventListener("click", aoClicarAcaoPerfilAdmin);
+  }
+>>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
 }
 
 // Atualiza a interface com o estado atual e ativa os listeners.
 atualizarStatusLogin();
 atualizarControlesAutenticacao();
+atualizarVisibilidadeBotaoAlerta();
 preencherCamposCallMeBot();
 atualizarVisibilidadeBotaoAlerta();
 registrarEventos();
@@ -1321,7 +1595,7 @@ inicializarPaginaAdmin();
 restaurarSomAlertaSeAtivo();
 
 carregarLocaisFormularios().then(() => {
-  if (idUsuarioEditar) {
+  if (idUsuarioEditar?.value !== undefined) {
     preencherPaginaEdicaoUsuario();
   }
 });

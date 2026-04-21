@@ -1,5 +1,5 @@
 const bcrypt = require('bcryptjs');
-const path = require('path');
+const path = require('node:path');
 
 const SALT_ROUNDS = 10;
 
@@ -9,6 +9,9 @@ const tiposMime = {
   '.css': 'text/css; charset=utf-8',
   '.js': 'application/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
+  '.mp3': 'audio/mpeg',
+  '.wav': 'audio/wav',
+  '.ogg': 'audio/ogg',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
@@ -58,8 +61,8 @@ function lerCorpoJson(req) {
       }
       try {
         resolve(JSON.parse(dados));
-      } catch (erro) {
-        reject(erro);
+      } catch (error_) {
+        reject(error_);
       }
     });
     req.on('error', reject);

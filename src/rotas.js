@@ -6,7 +6,7 @@
 // =============================================================================
 
 // Importa módulo HTTPS para fazer requisições externas (CallMeBot)
-const https = require('https');
+const https = require('node:https');
 
 // Importa funções utilitárias (validação, hash, resposta JSON, etc.)
 const {

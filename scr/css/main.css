@@ -54,6 +54,11 @@
 	flex: 1;
 }
 
+.linha-formulario select {
+	min-width: 180px;
+	flex: 1;
+}
+
 .admin-toolbar {
 	display: flex;
 	flex-wrap: wrap;
@@ -65,6 +70,12 @@
 .admin-usuario-logado {
 	font-weight: 600;
 	margin-right: auto;
+}
+
+.admin-acoes-linha {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
 }
 
 .tabela-wrap {
@@ -176,4 +187,191 @@
 
 .container {
     margin-top: 80px;
+<<<<<<< HEAD
+=======
+}
+
+.container-admin {
+	margin-top: 90px;
+	padding: 12px;
+	min-height: calc(100vh - 90px);
+	height: auto;
+	justify-content: flex-start;
+}
+
+.container-admin .painel-admin {
+	width: min(1100px, 100%);
+}
+
+.container-alertas {
+	margin-top: 90px;
+	padding: 12px;
+	min-height: calc(100vh - 90px);
+	height: auto;
+	justify-content: flex-start;
+}
+
+.container-alertas .painel-alertas {
+	width: min(1200px, 100%);
+	margin: 0;
+}
+
+@media (max-width: 1024px) {
+	.container-admin .admin-toolbar .btn {
+		flex: 1 1 calc(50% - 10px);
+		min-width: 180px;
+	}
+}
+
+@media (max-width: 768px) {
+	.container {
+		margin-top: 24px;
+		padding: 12px;
+	}
+
+	.container-admin {
+		margin-top: 76px;
+		padding: 10px;
+		min-height: calc(100vh - 76px);
+	}
+
+	.container-alertas {
+		margin-top: 76px;
+		padding: 10px;
+		min-height: calc(100vh - 76px);
+	}
+
+	.painel-card {
+		width: 100%;
+		padding: 14px;
+	}
+
+	.linha-formulario {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.linha-formulario input,
+	.linha-formulario select,
+	.linha-formulario .btn {
+		width: 100%;
+		min-width: 0;
+	}
+
+	.admin-toolbar {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.admin-usuario-logado {
+		margin-right: 0;
+	}
+
+	.admin-acoes-linha {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 6px;
+	}
+
+	.container-admin .admin-acoes-linha .botao-navbar:last-child {
+		grid-column: 1 / -1;
+	}
+}
+
+@media (max-width: 480px) {
+	.painel-titulo {
+		font-size: 24px;
+	}
+
+	.bloco-titulo {
+		font-size: 17px;
+	}
+
+	.admin-tabela {
+		min-width: 480px;
+	}
+}
+
+@media (max-width: 600px) {
+	.container-admin {
+		margin-top: 14px;
+		min-height: auto;
+	}
+
+	.container-admin .admin-toolbar .btn {
+		width: 100%;
+		min-width: 0;
+	}
+
+	.container-admin .admin-acoes-linha {
+		grid-template-columns: 1fr;
+	}
+
+	.container-admin .admin-tabela {
+		min-width: 480px;
+	}
+
+	.container-alertas {
+		margin-top: 14px;
+		min-height: auto;
+	}
+
+	.container-alertas .alertas-info {
+		padding: 12px;
+		gap: 8px;
+	}
+
+	.container-alertas .alertas-info .btn {
+		width: 100%;
+	}
+
+	.container-alertas .alertas-tabela {
+		min-width: 100%;
+	}
+
+	.container-alertas .alertas-tabela thead {
+		display: none;
+	}
+
+	.container-alertas .alertas-tabela,
+	.container-alertas .alertas-tabela tbody,
+	.container-alertas .alertas-tabela tr,
+	.container-alertas .alertas-tabela td {
+		display: block;
+		width: 100%;
+	}
+
+	.container-alertas .alertas-tabela tr {
+		margin-bottom: 10px;
+		padding: 8px;
+		border: 1px solid rgba(79, 127, 192, 0.22);
+		border-radius: 10px;
+		background: #fff;
+	}
+
+	.container-alertas .alertas-tabela td {
+		display: flex;
+		justify-content: space-between;
+		gap: 10px;
+		text-align: right;
+		padding: 9px 6px;
+		border-bottom: 1px solid #edf1f7;
+	}
+
+	.container-alertas .alertas-tabela td::before {
+		content: attr(data-label);
+		font-weight: 700;
+		color: var(--texto);
+		text-align: left;
+	}
+
+	.container-alertas .alertas-tabela td:last-child {
+		border-bottom: none;
+	}
+
+	.container-alertas .btn-desativar {
+		width: auto;
+		min-width: 130px;
+	}
+>>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
 }
