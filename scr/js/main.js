@@ -16,11 +16,7 @@ const STORAGE_ADMIN = "sos_anjo_admin_logado";
 const STORAGE_CMB_TELEFONE = "sos_anjo_cmb_telefone";
 const STORAGE_CMB_APIKEY   = "sos_anjo_cmb_apikey";
 const STORAGE_EDICAO_USUARIO = "sos_anjo_edicao_usuario";
-<<<<<<< HEAD
-const STORAGE_ALERTA_SONORO_ATIVO = "sos_anjo_alerta_sonoro_ativo";
-=======
 const STORAGE_ALERTAS_SYNC = "sos_anjo_alertas_sync";
->>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
 
 // Valores padrao do CallMeBot (usados se nada estiver salvo no navegador).
 const CMB_TELEFONE_PADRAO = "554799107264";
@@ -77,11 +73,6 @@ const btnAdminLogout = document.getElementById("btnAdminLogout");
 const adminUsuarioLogado = document.getElementById("adminUsuarioLogado");
 const adminTabelaCorpo = document.getElementById("adminTabelaCorpo");
 const adminLogsCorpo = document.getElementById("adminLogsCorpo");
-const adminLogsPaginacao = document.getElementById("adminLogsPaginacao");
-
-const LOGS_POR_PAGINA = 5;
-let paginaLogsAtual = 1;
-let totalPaginasLogs = 1;
 
 /* =============================
    Estado da sessao
@@ -90,35 +81,10 @@ let totalPaginasLogs = 1;
 // Estado em memoria do usuario atual; inicia tentando restaurar do localStorage.
 let usuarioLogado = carregarSessaoUsuario();
 let adminLogado = carregarSessaoAdmin();
-<<<<<<< HEAD
-let alertaSonoroAtivo = carregarEstadoAlertaSonoro();
-
-function carregarEstadoAlertaSonoro() {
-  try {
-    return localStorage.getItem(STORAGE_ALERTA_SONORO_ATIVO) === "1";
-  } catch {
-    return false;
-  }
-}
-
-function salvarEstadoAlertaSonoro(ativo) {
-  try {
-    if (ativo) {
-      localStorage.setItem(STORAGE_ALERTA_SONORO_ATIVO, "1");
-      return;
-    }
-
-    localStorage.removeItem(STORAGE_ALERTA_SONORO_ATIVO);
-  } catch {
-    // Ignora falhas de persistencia para nao interromper o fluxo do alerta.
-  }
-}
-=======
 let alertaSonoroAtivo = false;
 let alertaAudioContext = null;
 let alertaOscilador = null;
 let alertaIntervaloTom = null;
->>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
 
 function atualizarVisibilidadeBotaoAlerta() {
   if (!botaoDesativarAlerta) {
@@ -128,24 +94,6 @@ function atualizarVisibilidadeBotaoAlerta() {
   botaoDesativarAlerta.classList.toggle("oculto", !alertaSonoroAtivo);
 }
 
-<<<<<<< HEAD
-async function ativarSomAlerta(manterAtivoEmFalha = false) {
-  if (!(audioAlerta instanceof HTMLAudioElement)) {
-    return;
-  }
-
-  audioAlerta.currentTime = 0;
-
-  try {
-    await audioAlerta.play();
-    alertaSonoroAtivo = true;
-  } catch (error_) {
-    console.warn("Nao foi possivel reproduzir o som de alerta:", error_);
-    alertaSonoroAtivo = manterAtivoEmFalha;
-  }
-
-  salvarEstadoAlertaSonoro(alertaSonoroAtivo);
-=======
 function iniciarTomFallbackAlerta() {
   if (alertaOscilador) {
     return true;
@@ -219,76 +167,10 @@ async function ativarSomAlerta() {
 
   alertaSonoroAtivo = iniciarTomFallbackAlerta();
 
->>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
   atualizarVisibilidadeBotaoAlerta();
 }
 
 function desativarSomAlerta() {
-<<<<<<< HEAD
-  if (!(audioAlerta instanceof HTMLAudioElement)) {
-    return;
-  }
-
-  audioAlerta.pause();
-  audioAlerta.currentTime = 0;
-  alertaSonoroAtivo = false;
-  salvarEstadoAlertaSonoro(false);
-  atualizarVisibilidadeBotaoAlerta();
-}
-
-async function restaurarSomAlertaSeAtivo() {
-  if (!alertaSonoroAtivo) {
-    return;
-  }
-
-  await ativarSomAlerta(true);
-}
-
-async function desativarChamadasAtivasDoUsuario() {
-  const nomeUsuario = String(usuarioLogado?.nome || "").trim().toLowerCase();
-  if (!nomeUsuario) {
-    return;
-  }
-
-  try {
-    const respostaAlertas = await fetch(`${API_BASE}/api/alertas/ativos`);
-    const dados = await respostaAlertas.json().catch(() => ({}));
-
-    if (!respostaAlertas.ok) {
-      throw new Error(dados.erro || "Nao foi possivel listar alertas ativos.");
-    }
-
-    const alertas = Array.isArray(dados.alertas) ? dados.alertas : [];
-    const alertasDoUsuario = alertas.filter((alerta) => {
-      return String(alerta.usuario_nome || "").trim().toLowerCase() === nomeUsuario;
-    });
-
-    if (!alertasDoUsuario.length) {
-      return;
-    }
-
-    const desativacoes = alertasDoUsuario.map(async (alerta) => {
-      const idAlerta = Number(alerta.id);
-      if (!Number.isInteger(idAlerta) || idAlerta <= 0) {
-        return;
-      }
-
-      const respostaDesativar = await fetch(`${API_BASE}/api/alertas/desativar/${idAlerta}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (!respostaDesativar.ok) {
-        const erro = await respostaDesativar.json().catch(() => ({}));
-        throw new Error(erro.erro || `Falha ao desativar alerta ${idAlerta}.`);
-      }
-    });
-
-    await Promise.all(desativacoes);
-  } catch (error_) {
-    console.warn("Nao foi possivel desativar chamadas no painel:", error_);
-  }
-=======
   if (audioAlerta instanceof HTMLAudioElement) {
     audioAlerta.pause();
     audioAlerta.currentTime = 0;
@@ -337,14 +219,10 @@ async function desativarAlertasAtivosDoUsuario() {
   }
 
   return alertasDoUsuario.length;
->>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
 }
 
 async function aoClicarDesativarAlerta() {
   desativarSomAlerta();
-<<<<<<< HEAD
-  await desativarChamadasAtivasDoUsuario();
-=======
 
   try {
     const totalDesativado = await desativarAlertasAtivosDoUsuario();
@@ -363,7 +241,6 @@ async function aoClicarDesativarAlerta() {
     console.error("Falha ao sincronizar desativacao do alerta:", error_);
     alert(`O som foi desativado, mas houve falha ao sincronizar no painel: ${error_.message}`);
   }
->>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
 }
 
 // Retorna o valor de um input de forma segura (quando o elemento existe).
@@ -545,11 +422,7 @@ async function preencherPaginaEdicaoUsuario() {
 
   const usuarioEdicao = carregarEdicaoUsuario();
   if (!usuarioEdicao) {
-<<<<<<< HEAD
-    alert("Nenhum usuario foi selecionado para edicao.");
-=======
     alert("Nenhum usuário foi selecionado para edição.");
->>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
     globalThis.location.href = "admin.html";
     return;
   }
@@ -664,13 +537,8 @@ async function dispararPanico(usuario, localUsuario) {
 
 // Registra no backend eventos de clique relacionados ao alerta.
 async function registrarEventoAlerta(status, detalhe) {
-<<<<<<< HEAD
-  const usuarioNome = (usuarioLogado?.nome) || "Nao autenticado";
-  const usuarioLocal = (usuarioLogado?.local) || "Nao informado";
-=======
   const usuarioNome = usuarioLogado?.nome || "Não autenticado";
   const usuarioLocal = usuarioLogado?.local || "Não informado";
->>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
 
   try {
     await fetch(`${API_BASE}/api/alerta/evento`, {
@@ -770,11 +638,7 @@ async function salvarEdicaoUsuarioFormulario() {
 
   const resultado = await atualizarUsuarioAdmin(usuarioId, nomeUsuario, localIdUsuario, senhaUsuario);
   salvarEstadoEdicaoUsuario(null);
-<<<<<<< HEAD
-  alert(resultado.mensagem || "Usuario atualizado com sucesso.");
-=======
   alert(resultado.mensagem || "Usuário atualizado com sucesso.");
->>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
   globalThis.location.href = "admin.html";
 }
 
@@ -896,21 +760,15 @@ async function listarUsuariosAdmin() {
 }
 
 // Busca os ultimos logs de acionamento do botao de emergencia.
-async function listarLogsAlertaAdmin(pagina = 1, limite = LOGS_POR_PAGINA) {
-  const response = await fetch(
-    `${API_BASE}/api/admin/logs-alerta?limit=${encodeURIComponent(limite)}&page=${encodeURIComponent(pagina)}`
-  );
+async function listarLogsAlertaAdmin(limite = 20) {
+  const response = await fetch(`${API_BASE}/api/admin/logs-alerta?limit=${encodeURIComponent(limite)}`);
   const resultado = await response.json().catch(() => ({}));
 
   if (!response.ok) {
     throw new Error(resultado.erro || "Não foi possível carregar os logs de alerta.");
   }
 
-  return {
-    logs: Array.isArray(resultado.logs) ? resultado.logs : [],
-    paginaAtual: Number(resultado.paginaAtual) || pagina,
-    totalPaginas: Math.max(1, Number(resultado.totalPaginas) || 1),
-  };
+  return Array.isArray(resultado.logs) ? resultado.logs : [];
 }
 
 // Atualiza perfil administrativo de um usuario no backend.
@@ -997,17 +855,11 @@ async function aoClicarEmergencia() {
   try {
     // Tenta buscar dados atualizados do banco; se falhar, usa os dados da sessao.
     const usuarioBanco = await buscarUsuarioNoBanco(usuarioLogado.nome);
-<<<<<<< HEAD
-    const nomeFinal  = (usuarioBanco?.nome)  || usuarioLogado.nome  || "Usuario";
-    const localFinal = (usuarioBanco?.local) || usuarioLogado.local || "Local nao informado";
-=======
     const nomeFinal  = usuarioBanco?.nome || usuarioLogado.nome || "Usuário";
     const localFinal = usuarioBanco?.local || usuarioLogado.local || "Local não informado";
->>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
 
     console.log("Disparando panico para:", nomeFinal, localFinal);
     await dispararPanico(nomeFinal, localFinal);
-    await ativarSomAlerta();
     alert("✅ Alerta enviado com sucesso para o WhatsApp!");
   } catch (error_) {
     console.error("Erro ao disparar emergencia:", error_);
@@ -1193,36 +1045,6 @@ function renderizarLogsAlertaAdmin(logs) {
   });
 }
 
-function renderizarPaginacaoLogsAdmin() {
-  if (!adminLogsPaginacao) {
-    return;
-  }
-
-  if (totalPaginasLogs <= 1) {
-    adminLogsPaginacao.innerHTML = "";
-    return;
-  }
-
-  let botoesPaginas = "";
-  for (let pagina = 1; pagina <= totalPaginasLogs; pagina += 1) {
-    const classeBotao = pagina === paginaLogsAtual ? "btn primario" : "btn neutro";
-    botoesPaginas += `<button class="${classeBotao}" data-pagina-logs="${pagina}">${pagina}</button>`;
-  }
-
-  adminLogsPaginacao.innerHTML = `
-    <span>Pagina ${paginaLogsAtual} de ${totalPaginasLogs}</span>
-    <div class="admin-acoes-linha">${botoesPaginas}</div>
-  `;
-}
-
-async function atualizarLogsAdmin(pagina = 1) {
-  const resultado = await listarLogsAlertaAdmin(pagina, LOGS_POR_PAGINA);
-  paginaLogsAtual = Math.max(1, Number(resultado.paginaAtual) || 1);
-  totalPaginasLogs = Math.max(1, Number(resultado.totalPaginas) || 1);
-  renderizarLogsAlertaAdmin(resultado.logs);
-  renderizarPaginacaoLogsAdmin();
-}
-
 // Atualiza lista de usuarios e cabecalho do painel.
 async function atualizarPainelAdmin() {
   if (!adminLogado) {
@@ -1233,18 +1055,11 @@ async function atualizarPainelAdmin() {
   renderizarUsuariosAdmin(usuarios);
 
   try {
-<<<<<<< HEAD
-    await atualizarLogsAdmin(paginaLogsAtual);
-=======
     const logs = await listarLogsAlertaAdmin(20);
     renderizarLogsAlertaAdmin(logs);
->>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
   } catch (error_) {
     console.error("Falha ao carregar logs de alerta:", error_);
     renderizarLogsAlertaAdmin([]);
-    totalPaginasLogs = 1;
-    paginaLogsAtual = 1;
-    renderizarPaginacaoLogsAdmin();
   }
 
   if (adminUsuarioLogado) {
@@ -1331,7 +1146,6 @@ async function aoClicarAdminLogout() {
 // Atualiza manualmente os dados exibidos no painel.
 async function aoClicarAdminAtualizar() {
   try {
-    paginaLogsAtual = 1;
     await atualizarPainelAdmin();
   } catch (error_) {
     console.error(error_);
@@ -1339,55 +1153,12 @@ async function aoClicarAdminAtualizar() {
   }
 }
 
-<<<<<<< HEAD
-async function aoClicarPaginacaoLogsAdmin(evento) {
-  const alvo = obterAlvoEvento(evento);
-  if (!alvo) {
-    return;
-  }
-
-  const botaoPagina = alvo.closest("[data-pagina-logs]");
-  if (!botaoPagina) {
-    return;
-  }
-
-  const paginaSolicitada = Number(botaoPagina.dataset.paginaLogs);
-  if (!Number.isInteger(paginaSolicitada) || paginaSolicitada <= 0 || paginaSolicitada === paginaLogsAtual) {
-    return;
-  }
-
-  try {
-    await atualizarLogsAdmin(paginaSolicitada);
-  } catch (error_) {
-    console.error(error_);
-    mostrarAvisoAdmin(error_.message, "erro");
-  }
-}
-
-function obterAlvoEvento(evento) {
-  const alvo = evento.target;
-  return alvo instanceof HTMLElement ? alvo : null;
-}
-
-function obterIdUsuarioValido(valorId) {
-  const idUsuario = Number(valorId);
-  return Number.isInteger(idUsuario) && idUsuario > 0 ? idUsuario : null;
-}
-
-async function processarAcaoPerfilAdmin(botaoPerfil) {
-  const idUsuario = obterIdUsuarioValido(botaoPerfil.dataset.id);
-  const novoAdmin = Number(botaoPerfil.dataset.admin) === 1 ? 1 : 0;
-
-  if (!idUsuario) {
-    mostrarAvisoAdmin("Usuario invalido para atualizacao de perfil.", "erro");
-=======
 async function processarAcaoPerfilAdmin(botaoPerfil) {
   const idUsuario = Number(botaoPerfil.dataset.id);
   const novoAdmin = Number(botaoPerfil.dataset.admin) === 1 ? 1 : 0;
 
   if (!Number.isInteger(idUsuario) || idUsuario <= 0) {
     mostrarAvisoAdmin("Usuário inválido para atualização de perfil.", "erro");
->>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
     return;
   }
 
@@ -1404,22 +1175,13 @@ async function processarAcaoPerfilAdmin(botaoPerfil) {
 }
 
 function processarAcaoEditarAdmin(botaoEditar) {
-<<<<<<< HEAD
-  const idUsuario = obterIdUsuarioValido(botaoEditar.dataset.id);
-=======
   const idUsuario = Number(botaoEditar.dataset.id);
->>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
   const nomeAtual = String(botaoEditar.dataset.nome || "").trim();
   const localAtual = String(botaoEditar.dataset.local || "").trim();
   const localIdAtual = Number(botaoEditar.dataset.localId || 0);
 
-<<<<<<< HEAD
-  if (!idUsuario) {
-    mostrarAvisoAdmin("Usuario invalido para edicao.", "erro");
-=======
   if (!Number.isInteger(idUsuario) || idUsuario <= 0) {
     mostrarAvisoAdmin("Usuário inválido para edição.", "erro");
->>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
     return;
   }
 
@@ -1434,17 +1196,6 @@ function processarAcaoEditarAdmin(botaoEditar) {
 }
 
 async function processarAcaoRemoverAdmin(botaoRemover) {
-<<<<<<< HEAD
-  const idUsuario = obterIdUsuarioValido(botaoRemover.dataset.id);
-  const nomeUsuario = String(botaoRemover.dataset.nome || "Usuario");
-
-  if (!idUsuario) {
-    mostrarAvisoAdmin("Usuario invalido para remocao.", "erro");
-    return;
-  }
-
-  const confirmou = globalThis.confirm(`Deseja remover o usuario ${nomeUsuario}?`);
-=======
   const idUsuario = Number(botaoRemover.dataset.id);
   const nomeUsuario = String(botaoRemover.dataset.nome || "Usuário");
 
@@ -1454,7 +1205,6 @@ async function processarAcaoRemoverAdmin(botaoRemover) {
   }
 
   const confirmou = globalThis.confirm(`Deseja remover o usuário ${nomeUsuario}?`);
->>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
   if (!confirmou) {
     return;
   }
@@ -1473,8 +1223,8 @@ async function processarAcaoRemoverAdmin(botaoRemover) {
 
 // Processa clique nos botoes de promover/rebaixar dentro da tabela.
 async function aoClicarAcaoPerfilAdmin(evento) {
-  const alvo = obterAlvoEvento(evento);
-  if (!alvo) {
+  const alvo = evento.target;
+  if (!(alvo instanceof HTMLElement)) {
     return;
   }
 
@@ -1502,30 +1252,10 @@ async function aoClicarAcaoPerfilAdmin(evento) {
 
 // Conecta eventos somente para os elementos que existem na pagina atual.
 function registrarEventos() {
-  const vincularEventoClique = (elemento, handler) => {
-    if (elemento) {
-      elemento.addEventListener("click", handler);
-    }
-  };
+  if (botao) {
+    botao.addEventListener("click", aoClicarEmergencia);
+  }
 
-<<<<<<< HEAD
-  vincularEventoClique(botao, aoClicarEmergencia);
-  vincularEventoClique(botaoDesativarAlerta, aoClicarDesativarAlerta);
-  vincularEventoClique(salvarBotao, aoClicarSalvarUsuario);
-  vincularEventoClique(btnLogin, aoClicarLogin);
-  vincularEventoClique(btnLogout, aoClicarLogout);
-  vincularEventoClique(btnIrCadastro, aoClicarIrCadastro);
-  vincularEventoClique(btnIrCadastroPainel, aoClicarIrCadastro);
-  vincularEventoClique(btnIrInicio, aoClicarIrInicio);
-  vincularEventoClique(btnIrAdmin, aoClicarIrAdmin);
-  vincularEventoClique(btnIrAlertas, aoClicarIrAlertas);
-  vincularEventoClique(btnCriarAdmin, aoClicarCriarAdmin);
-  vincularEventoClique(btnAdminLogin, aoClicarAdminLogin);
-  vincularEventoClique(btnAdminLogout, aoClicarAdminLogout);
-  vincularEventoClique(btnAdminAtualizar, aoClicarAdminAtualizar);
-  vincularEventoClique(adminLogsPaginacao, aoClicarPaginacaoLogsAdmin);
-  vincularEventoClique(adminTabelaCorpo, aoClicarAcaoPerfilAdmin);
-=======
   if (botaoDesativarAlerta) {
     botaoDesativarAlerta.addEventListener("click", aoClicarDesativarAlerta);
   }
@@ -1581,7 +1311,6 @@ function registrarEventos() {
   if (adminTabelaCorpo) {
     adminTabelaCorpo.addEventListener("click", aoClicarAcaoPerfilAdmin);
   }
->>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
 }
 
 // Atualiza a interface com o estado atual e ativa os listeners.
@@ -1589,10 +1318,8 @@ atualizarStatusLogin();
 atualizarControlesAutenticacao();
 atualizarVisibilidadeBotaoAlerta();
 preencherCamposCallMeBot();
-atualizarVisibilidadeBotaoAlerta();
 registrarEventos();
 inicializarPaginaAdmin();
-restaurarSomAlertaSeAtivo();
 
 carregarLocaisFormularios().then(() => {
   if (idUsuarioEditar?.value !== undefined) {

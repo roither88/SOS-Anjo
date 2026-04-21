@@ -187,8 +187,6 @@
 
 .container {
     margin-top: 80px;
-<<<<<<< HEAD
-=======
 }
 
 .container-admin {
@@ -373,5 +371,4 @@
 		width: auto;
 		min-width: 130px;
 	}
->>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
 }

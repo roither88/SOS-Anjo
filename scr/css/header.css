@@ -16,14 +16,11 @@
     left: 0;
     width: 100%;
     z-index: 1000;
-<<<<<<< HEAD
-=======
 
     gap: 10px;
 
     transition: transform 0.3s ease; /*  mudou aqui */
     transform: translateY(0);
->>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
 }
 
 /* organização do texto */

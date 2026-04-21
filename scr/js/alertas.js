@@ -3,11 +3,7 @@
    ============================= */
 
 const estaEmAmbienteLocal = globalThis.location.hostname === "localhost" || globalThis.location.hostname === "127.0.0.1";
-<<<<<<< HEAD
-const API_BASE = estaEmAmbienteLocal && globalThis.location.port !== "3000"
-=======
 const API_BASE = estaEmAmbienteLocal
->>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
   ? "http://localhost:3000"
   : "";
 const STORAGE_ALERTAS_SYNC = "sos_anjo_alertas_sync";
@@ -45,13 +41,8 @@ function atualizarStatusLogin() {
         statusLogin.textContent = "Não logado";
       }
     }
-<<<<<<< HEAD
-  } catch (e) {
-    console.warn("Nao foi possivel atualizar status de login:", e);
-=======
   } catch (error_) {
     console.warn("Falha ao ler sessão de login no navegador:", error_);
->>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
     if (statusLogin) {
       statusLogin.textContent = "Não logado";
     }
@@ -187,64 +178,12 @@ function pararAudio() {
     if (audioAlerta._oscilador) {
       try {
         audioAlerta._oscilador.stop();
-<<<<<<< HEAD
-      } catch (e) {
-        console.warn("Oscilador de alerta ja estava parado:", e);
-=======
       } catch (error_) {
         console.debug("Oscilador já estava parado:", error_);
->>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
       }
       audioAlerta._oscilador = null;
     }
   }
-}
-
-function atualizarVisibilidadeAlertas(alertas) {
-  if (alertas.length === 0) {
-    if (alertasVazio) alertasVazio.classList.remove("oculto");
-    if (alertasContainer) alertasContainer.classList.add("oculto");
-    if (alertasCorpo) alertasCorpo.innerHTML = "";
-    return false;
-  }
-
-  if (alertasVazio) alertasVazio.classList.add("oculto");
-  if (alertasContainer) alertasContainer.classList.remove("oculto");
-  return true;
-}
-
-function popularTabelaAlertas(alertas) {
-  if (!alertasCorpo) {
-    return;
-  }
-
-  alertasCorpo.innerHTML = "";
-  alertas.forEach((alerta) => {
-    const linha = document.createElement("tr");
-
-    const dataHora = new Date(alerta.data_hora);
-    const dataFormatada = dataHora.toLocaleString("pt-BR");
-
-    linha.innerHTML = `
-      <td>${alerta.id}</td>
-      <td>${alerta.usuario_nome || "N/A"}</td>
-      <td>${alerta.usuario_local || "N/A"}</td>
-      <td>${dataFormatada}</td>
-      <td>
-        <button class="btn-desativar" data-id="${alerta.id}">DESATIVAR</button>
-      </td>
-    `;
-
-    alertasCorpo.appendChild(linha);
-  });
-
-  // Adiciona listeners aos botões de desativar
-  document.querySelectorAll(".btn-desativar").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const id = btn.dataset.id;
-      desativarAlerta(id);
-    });
-  });
 }
 
 // Busca alertas ativos do servidor
@@ -270,16 +209,6 @@ async function carregarAlertas() {
       pararAudio();
     }
 
-<<<<<<< HEAD
-    // Mostra/esconde container vazio
-    const haAlertas = atualizarVisibilidadeAlertas(alertas);
-    if (!haAlertas) {
-      return;
-    }
-
-    // Popula tabela
-    popularTabelaAlertas(alertas);
-=======
     if (alertas.length === 0) {
       atualizarVisibilidadeAlertas(true);
       return;
@@ -287,23 +216,10 @@ async function carregarAlertas() {
 
     atualizarVisibilidadeAlertas(false);
     renderizarTabelaAlertas(alertas);
->>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
   } catch (error_) {
     console.error("Erro ao carregar alertas:", error_);
     mostrarMensagem("Erro ao conectar com o servidor", "erro");
   }
-}
-
-function obterCorMensagem(tipo) {
-  if (tipo === "sucesso") {
-    return "#4CAF50";
-  }
-
-  if (tipo === "erro") {
-    return "#f44336";
-  }
-
-  return "#2196F3";
 }
 
 // Desativa um alerta específico
@@ -362,16 +278,12 @@ function aoSincronizarAlertas(evento) {
 
 // Mostra uma mensagem temporária ao usuário
 function mostrarMensagem(texto, tipo = "info") {
-<<<<<<< HEAD
-  const corMensagem = obterCorMensagem(tipo);
-=======
   let corFundo = "#2196F3";
   if (tipo === "sucesso") {
     corFundo = "#4CAF50";
   } else if (tipo === "erro") {
     corFundo = "#f44336";
   }
->>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
 
   // Cria elemento de mensagem
   const mensagem = document.createElement("div");
@@ -381,11 +293,7 @@ function mostrarMensagem(texto, tipo = "info") {
     position: fixed;
     top: 20px;
     right: 20px;
-<<<<<<< HEAD
-    background-color: ${corMensagem};
-=======
     background-color: ${corFundo};
->>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
     color: white;
     padding: 16px;
     border-radius: 4px;
@@ -494,13 +402,8 @@ function verificarAutenticacaoAdmin() {
   try {
     const admin = localStorage.getItem("sos_anjo_admin_logado");
     return admin ? JSON.parse(admin) : null;
-<<<<<<< HEAD
-  } catch (e) {
-    console.warn("Nao foi possivel verificar autenticacao de admin:", e);
-=======
   } catch (error_) {
     console.warn("Falha ao ler autenticação de administrador:", error_);
->>>>>>> d150af0 (Refactor CSS styles for alert buttons and tables; enhance responsiveness and accessibility)
     return null;
   }
 }
