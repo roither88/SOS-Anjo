@@ -1,7 +1,9 @@
-:root {
-    --fundo: linear-gradient(180deg, #dbeafe, #c7d7f2);
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-    --card: rgba(255,255,255,0.35);
+:root {
+    --fundo: linear-gradient(135deg, #dbeafe 0%, #c7d7f2 50%, #d4e8fb 100%);
+
+    --card: rgba(255,255,255,0.72);
 
     --texto: #3b4f6b;
     --suave: #6b7f99;
@@ -10,6 +12,13 @@
     --primaria-forte: #4f7fc0;
 
     --borda: 16px;
+
+    /* Novos tokens de design */
+    --sombra-card: 0 4px 6px rgba(0,0,0,0.04), 0 20px 60px rgba(79,127,192,0.14), inset 0 1px 0 rgba(255,255,255,0.9);
+    --borda-input: rgba(79,127,192,0.28);
+    --focus-ring: 0 0 0 4px rgba(79,127,192,0.14);
+    --raio-card: 24px;
+    --raio-input: 13px;
 }
 
 * {
@@ -19,7 +28,47 @@
 }
 
 body {
-    font-family: Arial, sans-serif;
+    font-family: 'Inter', Arial, sans-serif;
     background: var(--fundo);
     color: var(--texto);
+    min-height: 100vh;
+}
+
+/* ── Animação global de entrada ── */
+@keyframes fade-up {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes orb-float {
+    0%, 100% { transform: translateY(0px) scale(1); }
+    50% { transform: translateY(-30px) scale(1.04); }
+}
+
+/* ── Orbs decorativos (usados em todas as páginas) ── */
+.bg-orb {
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+    filter: blur(60px);
+    opacity: 0.45;
+}
+
+.bg-orb-1 {
+    width: 480px;
+    height: 480px;
+    background: radial-gradient(circle, #93c5fd, #bfdbfe);
+    top: -120px;
+    right: -100px;
+    animation: orb-float 12s ease-in-out infinite;
+}
+
+.bg-orb-2 {
+    width: 360px;
+    height: 360px;
+    background: radial-gradient(circle, #a5b4fc, #c7d2fe);
+    bottom: -80px;
+    left: -80px;
+    animation: orb-float 16s ease-in-out infinite reverse;
 }

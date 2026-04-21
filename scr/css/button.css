@@ -1,26 +1,73 @@
-.btn {
-    padding: 8px 14px;
-    border-radius: 10px;
-    border: none;
-    cursor: pointer;
+/* ═══════════════════════════════════════════
+   BUTTON.CSS — Sistema de botões premium
+   ═══════════════════════════════════════════ */
 
-    transition: 0.3s;
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 9px 16px;
+    border-radius: 10px;
+    border: 1.5px solid transparent;
+    cursor: pointer;
+    font-family: 'Inter', Arial, sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    transition: transform 0.18s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+    box-shadow: 0 1px 3px rgba(34, 55, 88, 0.1);
+    white-space: nowrap;
 }
 
 .btn.primario {
-    background: var(--primaria);
+    background: linear-gradient(135deg, #4f7fc0, #7fa6d9);
     color: #fff;
+    border-color: rgba(54, 90, 141, 0.2);
+    box-shadow: 0 3px 10px rgba(79, 127, 192, 0.35);
 }
 
 .btn.primario:hover {
-    background: var(--primaria-forte);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(79, 127, 192, 0.45);
+    background: linear-gradient(135deg, #3a6aad, #6a96cc);
+}
+
+.btn.primario:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(79, 127, 192, 0.3);
 }
 
 .btn.neutro {
-    background: rgba(255,255,255,0.6);
-    color: var(--texto);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(242, 247, 255, 0.95));
+    color: #3a5376;
+    border-color: rgba(79, 127, 192, 0.24);
 }
 
 .btn.neutro:hover {
-    transform: scale(1.05);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(34, 55, 88, 0.14);
+    border-color: rgba(79, 127, 192, 0.4);
+}
+
+.btn.neutro:active {
+    transform: translateY(0);
+}
+
+.btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(79, 127, 192, 0.2), 0 4px 10px rgba(34, 55, 88, 0.12);
+}
+
+/* Botão perigo (desativar, excluir) */
+.btn.perigo {
+    background: linear-gradient(135deg, #b53636, #e05252);
+    color: #fff;
+    border-color: rgba(160, 40, 40, 0.2);
+    box-shadow: 0 3px 10px rgba(180, 50, 50, 0.3);
+}
+
+.btn.perigo:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(180, 50, 50, 0.4);
 }

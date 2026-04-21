@@ -2,6 +2,67 @@
    Configuracao da aplicacao
    ============================= */
 
+/* ── Helpers SweetAlert2 ── */
+function swalToast(icon, title, timer = 3000) {
+  return Swal.fire({
+    toast: true,
+    position: "bottom-end",
+    icon,
+    title,
+    showConfirmButton: false,
+    timer,
+    timerProgressBar: true,
+    didOpen: (el) => {
+      el.addEventListener("mouseenter", Swal.stopTimer);
+      el.addEventListener("mouseleave", Swal.resumeTimer);
+    },
+  });
+}
+
+function swalAviso(title, text = "") {
+  return Swal.fire({
+    icon: "warning",
+    title,
+    text,
+    confirmButtonText: "Ok",
+    confirmButtonColor: "#4f7fc0",
+  });
+}
+
+function swalSucesso(title, text = "") {
+  return Swal.fire({
+    icon: "success",
+    title,
+    text,
+    confirmButtonText: "Ok",
+    confirmButtonColor: "#4f7fc0",
+  });
+}
+
+function swalErro(title, text = "") {
+  return Swal.fire({
+    icon: "error",
+    title,
+    text,
+    confirmButtonText: "Ok",
+    confirmButtonColor: "#4f7fc0",
+  });
+}
+
+async function swalConfirmar(title, text = "", iconConfirm = "question") {
+  const resultado = await Swal.fire({
+    icon: iconConfirm,
+    title,
+    text,
+    showCancelButton: true,
+    confirmButtonText: "Sim",
+    cancelButtonText: "Cancelar",
+    confirmButtonColor: "#4f7fc0",
+    cancelButtonColor: "#6b7f99",
+  });
+  return resultado.isConfirmed;
+}
+
 // Em producao (Render), usa mesma origem. Em dev fora da porta 3000, usa localhost:3000.
 const estaEmAmbienteLocal = globalThis.location.hostname === "localhost" || globalThis.location.hostname === "127.0.0.1";
 const API_BASE = estaEmAmbienteLocal && globalThis.location.port !== "3000"
@@ -92,6 +153,36 @@ function atualizarVisibilidadeBotaoAlerta() {
   }
 
   botaoDesativarAlerta.classList.toggle("oculto", !alertaSonoroAtivo);
+}
+
+// Habilita ou desabilita o botão de emergência conforme o estado de login.
+function atualizarEstadoBotaoEmergencia() {
+  if (!botao) {
+    return;
+  }
+
+  const logado = Boolean(usuarioLogado);
+  botao.disabled = false;
+  botao.title = logado
+    ? ""
+    : "Faça login para acionar o alerta de emergência";
+  botao.setAttribute("aria-disabled", String(!logado));
+  botao.classList.toggle("desabilitado", !logado);
+}
+
+// Habilita ou desabilita o botão de acesso ao painel de alertas conforme login.
+function atualizarEstadoBotaoIrAlertas() {
+  if (!btnIrAlertas) {
+    return;
+  }
+
+  const logado = Boolean(usuarioLogado);
+  btnIrAlertas.disabled = false;
+  btnIrAlertas.title = logado
+    ? ""
+    : "Faça login para acessar o painel de alertas";
+  btnIrAlertas.setAttribute("aria-disabled", String(!logado));
+  btnIrAlertas.classList.toggle("desabilitado", !logado);
 }
 
 function iniciarTomFallbackAlerta() {
@@ -239,7 +330,7 @@ async function aoClicarDesativarAlerta() {
     );
   } catch (error_) {
     console.error("Falha ao sincronizar desativacao do alerta:", error_);
-    alert(`O som foi desativado, mas houve falha ao sincronizar no painel: ${error_.message}`);
+    swalAviso("Som desativado", `O som foi desativado, mas houve falha ao sincronizar no painel: ${error_.message}`);
   }
 }
 
@@ -292,6 +383,8 @@ function salvarSessaoUsuario(usuario) {
 
   atualizarStatusLogin();
   atualizarControlesAutenticacao();
+  atualizarEstadoBotaoEmergencia();
+  atualizarEstadoBotaoIrAlertas();
 }
 
 // Quando houver admin autenticado, espelha esse login na sessao principal do sistema.
@@ -369,7 +462,7 @@ function atualizarControlesAutenticacao() {
 // Garante que a acao so continue se houver usuario autenticado.
 function exigirLogin() {
   if (!usuarioLogado) {
-    alert("Faça login primeiro.");
+    swalAviso("Login necessário", "Faça login primeiro.");
     return false;
   }
 
@@ -422,7 +515,7 @@ async function preencherPaginaEdicaoUsuario() {
 
   const usuarioEdicao = carregarEdicaoUsuario();
   if (!usuarioEdicao) {
-    alert("Nenhum usuário foi selecionado para edição.");
+    await swalAviso("Usuário não selecionado", "Nenhum usuário foi selecionado para edição.");
     globalThis.location.href = "admin.html";
     return;
   }
@@ -582,12 +675,12 @@ async function salvarUsuario() {
   const senhaUsuario = valorInput(senhaCadastro);
 
   if (!nomeUsuario) {
-    alert("Informe o nome do usuário.");
+    swalAviso("Campo obrigatório", "Informe o nome do usuário.");
     return;
   }
 
   if (!Number.isInteger(localIdUsuario) || localIdUsuario <= 0) {
-    alert("Selecione um local válido.");
+    swalAviso("Campo obrigatório", "Selecione um local válido.");
     return;
   }
 
@@ -607,7 +700,7 @@ async function salvarUsuario() {
     throw new Error(resultado.erro || "Não foi possível salvar o usuário.");
   }
 
-  alert(`Usuário salvo: ${resultado.nome}`);
+  swalToast("success", `Usuário salvo: ${resultado.nome}`);
 }
 
 // Salva alteracoes de um usuario na pagina de edicao.
@@ -622,23 +715,23 @@ async function salvarEdicaoUsuarioFormulario() {
   const senhaUsuario = valorInput(senhaCadastro);
 
   if (!Number.isInteger(usuarioId) || usuarioId <= 0) {
-    alert("Usuário de edição inválido.");
+    swalAviso("Inválido", "Usuário de edição inválido.");
     return;
   }
 
   if (!nomeUsuario) {
-    alert("Informe o nome do usuário.");
+    swalAviso("Campo obrigatório", "Informe o nome do usuário.");
     return;
   }
 
   if (!Number.isInteger(localIdUsuario) || localIdUsuario <= 0) {
-    alert("Selecione um local válido.");
+    swalAviso("Campo obrigatório", "Selecione um local válido.");
     return;
   }
 
   const resultado = await atualizarUsuarioAdmin(usuarioId, nomeUsuario, localIdUsuario, senhaUsuario);
   salvarEstadoEdicaoUsuario(null);
-  alert(resultado.mensagem || "Usuário atualizado com sucesso.");
+  await swalToast("success", resultado.mensagem || "Usuário atualizado com sucesso.");
   globalThis.location.href = "admin.html";
 }
 
@@ -648,7 +741,7 @@ async function fazerLogin() {
   const senhaUsuario = valorInput(loginSenha);
 
   if (!nomeUsuario || !senhaUsuario) {
-    alert("Informe nome e senha para login.");
+    swalAviso("Campos obrigatórios", "Informe nome e senha para login.");
     return;
   }
 
@@ -677,7 +770,7 @@ async function fazerLogin() {
     salvarSessaoAdmin(null);
   }
 
-  alert(`Login realizado: ${resultado.nome}`);
+  swalToast("success", `Login realizado: Anjo ${resultado.nome}`);
 }
 
 // Consulta se existe administrador cadastrado no banco.
@@ -699,7 +792,7 @@ async function criarAdminInicial() {
   const senhaUsuario = valorInput(adminCriarSenha);
 
   if (!nomeUsuario || !senhaUsuario) {
-    alert("Informe nome e senha para criar o administrador.");
+    swalAviso("Campos obrigatórios", "Informe nome e senha para criar o administrador.");
     return null;
   }
 
@@ -728,7 +821,7 @@ async function fazerLoginAdmin() {
   const senhaUsuario = valorInput(adminLoginSenha);
 
   if (!nomeUsuario || !senhaUsuario) {
-    alert("Informe nome e senha do administrador.");
+    swalAviso("Campos obrigatórios", "Informe nome e senha do administrador.");
     return null;
   }
 
@@ -838,16 +931,18 @@ async function removerUsuarioAdmin(idUsuario) {
 
 // Handler do botao de emergencia na tela principal.
 async function aoClicarEmergencia() {
+  // Bloqueia qualquer ação se o usuário não estiver logado.
+  if (!usuarioLogado) {
+    swalAviso("Login necessário", "Faça login para acionar o alerta de emergência.");
+    return;
+  }
+
   console.log("Botão de emergência clicado.");
 
   await registrarEventoAlerta(
     "botao_emergencia_clicado",
-    usuarioLogado ? "Clique no botão de emergência." : "Clique sem usuário autenticado."
+    "Clique no botão de emergência."
   );
-
-  if (!exigirLogin()) {
-    return;
-  }
 
   // Inicia o som no contexto direto do clique para evitar bloqueio de autoplay.
   await ativarSomAlerta();
@@ -860,10 +955,10 @@ async function aoClicarEmergencia() {
 
     console.log("Disparando panico para:", nomeFinal, localFinal);
     await dispararPanico(nomeFinal, localFinal);
-    alert("✅ Alerta enviado com sucesso para o WhatsApp!");
+    swalSucesso("Alerta enviado!", "Mensagem de emergência enviada com sucesso para o WhatsApp.");
   } catch (error_) {
     console.error("Erro ao disparar emergencia:", error_);
-    alert("❌ Erro ao enviar alerta: " + error_.message);
+    swalErro("Erro ao enviar alerta", error_.message);
   }
 }
 
@@ -889,7 +984,7 @@ async function aoClicarSalvarUsuario() {
     await salvarUsuario();
   } catch (error_) {
     console.error(error_);
-    alert(error_.message);
+    swalErro("Erro", error_.message);
   }
 }
 
@@ -899,7 +994,7 @@ async function aoClicarLogin() {
     await fazerLogin();
   } catch (error_) {
     console.error(error_);
-    alert(error_.message);
+    swalErro("Erro ao fazer login", error_.message);
   }
 }
 
@@ -907,7 +1002,7 @@ async function aoClicarLogin() {
 function aoClicarLogout() {
   salvarSessaoUsuario(null);
   salvarSessaoAdmin(null);
-  alert("Sessão encerrada.");
+  swalToast("info", "Sessão encerrada.");
 }
 
 // Navega para tela de cadastro.
@@ -928,6 +1023,10 @@ function aoClicarIrAdmin() {
 
 // Navega para o painel de alertas.
 function aoClicarIrAlertas() {
+  if (!exigirLogin()) {
+    return;
+  }
+
   globalThis.location.href = "alertas.html";
 }
 
@@ -982,11 +1081,11 @@ function renderizarUsuariosAdmin(usuarios) {
     const novoPerfil = eAdmin ? 0 : 1;
 
     linha.innerHTML = `
-      <td>${usuario.id}</td>
-      <td>${usuario.nome || "-"}</td>
-      <td>${usuario.local || "-"}</td>
-      <td>${perfil}</td>
-      <td>
+      <td data-label="ID">${usuario.id}</td>
+      <td data-label="Nome">${usuario.nome || "-"}</td>
+      <td data-label="Local">${usuario.local || "-"}</td>
+      <td data-label="Perfil">${perfil}</td>
+      <td data-label="Ações">
         <div class="admin-acoes-linha">
           <button
             class="botao-navbar admin-acao-perfil"
@@ -1013,6 +1112,25 @@ function renderizarUsuariosAdmin(usuarios) {
   });
 }
 
+// Mapa de status técnicos para rótulos amigáveis em português.
+const STATUS_LOG_LABELS = {
+  BOTAO_EMERGENCIA_CLICADO: { texto: "🚨 Emergência acionada", classe: "badge-emergencia" },
+  SOM_DESATIVADO_USUARIO:   { texto: "🔕 Som desativado",      classe: "badge-desativado" },
+  ALERTA_ENVIADO:           { texto: "✅ Alerta enviado",       classe: "badge-sucesso"    },
+  ALERTA_FALHOU:            { texto: "❌ Falha no alerta",      classe: "badge-erro"       },
+};
+
+function badgeStatus(statusRaw) {
+  const chave = String(statusRaw || "").toUpperCase().trim();
+  const mapa  = STATUS_LOG_LABELS[chave];
+  if (mapa) {
+    return `<span class="log-badge ${mapa.classe}">${mapa.texto}</span>`;
+  }
+  // Fallback: exibe o valor original em formato legível
+  const legivel = chave.replaceAll("_", " ");
+  return `<span class="log-badge badge-neutro">${legivel}</span>`;
+}
+
 // Renderiza a lista de logs no painel administrativo.
 function renderizarLogsAlertaAdmin(logs) {
   if (!adminLogsCorpo) {
@@ -1031,14 +1149,13 @@ function renderizarLogsAlertaAdmin(logs) {
     const data = item.data_hora
       ? new Date(item.data_hora).toLocaleString("pt-BR")
       : "-";
-    const status = String(item.status || "-").toUpperCase();
 
     linha.innerHTML = `
-      <td>${item.id ?? "-"}</td>
-      <td>${item.usuario_nome || "-"}</td>
-      <td>${item.usuario_local || "-"}</td>
-      <td>${data}</td>
-      <td>${status}</td>
+      <td data-label="ID">${item.id ?? "-"}</td>
+      <td data-label="Usuário">${item.usuario_nome || "-"}</td>
+      <td data-label="Local">${item.usuario_local || "-"}</td>
+      <td data-label="Data/Hora">${data}</td>
+      <td data-label="Status">${badgeStatus(item.status)}</td>
     `;
 
     adminLogsCorpo.appendChild(linha);
@@ -1204,7 +1321,11 @@ async function processarAcaoRemoverAdmin(botaoRemover) {
     return;
   }
 
-  const confirmou = globalThis.confirm(`Deseja remover o usuário ${nomeUsuario}?`);
+  const confirmou = await swalConfirmar(
+    `Remover usuário`,
+    `Tem certeza que deseja remover o usuário "${nomeUsuario}"? Esta ação não pode ser desfeita.`,
+    "warning"
+  );
   if (!confirmou) {
     return;
   }
@@ -1317,6 +1438,8 @@ function registrarEventos() {
 atualizarStatusLogin();
 atualizarControlesAutenticacao();
 atualizarVisibilidadeBotaoAlerta();
+atualizarEstadoBotaoEmergencia();
+atualizarEstadoBotaoIrAlertas();
 preencherCamposCallMeBot();
 registrarEventos();
 inicializarPaginaAdmin();

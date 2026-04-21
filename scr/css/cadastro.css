@@ -1,0 +1,355 @@
+/* ═══════════════════════════════════════════
+   CADASTRO.CSS — Página de Cadastro de Usuário
+   ═══════════════════════════════════════════ */
+
+/* ── Fonte ── */
+body.cadastro-page {
+    font-family: 'Inter', Arial, sans-serif;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #dbeafe 0%, #c7d7f2 50%, #d4e8fb 100%);
+}
+
+/* ── Layout principal ── */
+.cadastro-main {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 100px 16px 48px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* ── Orbs decorativos de fundo ── */
+.cadastro-bg-orb {
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+    filter: blur(60px);
+    opacity: 0.45;
+}
+
+.orb-1 {
+    width: 480px;
+    height: 480px;
+    background: radial-gradient(circle, #93c5fd, #bfdbfe);
+    top: -120px;
+    right: -100px;
+    animation: orb-float 12s ease-in-out infinite;
+}
+
+.orb-2 {
+    width: 360px;
+    height: 360px;
+    background: radial-gradient(circle, #a5b4fc, #c7d2fe);
+    bottom: -80px;
+    left: -80px;
+    animation: orb-float 16s ease-in-out infinite reverse;
+}
+
+@keyframes orb-float {
+    0%, 100% { transform: translateY(0px) scale(1); }
+    50% { transform: translateY(-30px) scale(1.04); }
+}
+
+/* ── Wrapper central ── */
+.cadastro-wrapper {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 480px;
+    animation: fade-up 0.5s ease both;
+}
+
+@keyframes fade-up {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Cabeçalho com ícone ── */
+.cadastro-header {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.cadastro-icon-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    border-radius: 22px;
+    background: linear-gradient(135deg, #4f80c0, #7fa6d9);
+    box-shadow: 0 8px 24px rgba(79, 127, 192, 0.4);
+    margin-bottom: 16px;
+    font-size: 30px;
+    color: #fff;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.cadastro-icon-wrap:hover {
+    transform: translateY(-4px) scale(1.05);
+    box-shadow: 0 14px 32px rgba(79, 127, 192, 0.5);
+}
+
+.cadastro-titulo {
+    font-size: 30px;
+    font-weight: 700;
+    color: #1e3a5f;
+    letter-spacing: -0.5px;
+    margin-bottom: 6px;
+    line-height: 1.15;
+}
+
+.cadastro-subtitulo {
+    font-size: 15px;
+    color: #5a7499;
+    font-weight: 400;
+}
+
+/* ── Card do formulário ── */
+.cadastro-card {
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border-radius: 24px;
+    padding: 36px 32px;
+    box-shadow:
+        0 4px 6px rgba(0, 0, 0, 0.04),
+        0 20px 60px rgba(79, 127, 192, 0.14),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+/* ── Grupos de campo ── */
+.cadastro-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.campo-grupo {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+/* ── Label ── */
+.campo-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #3b5070;
+    letter-spacing: 0.2px;
+    text-transform: uppercase;
+}
+
+.campo-icone {
+    font-size: 13px;
+    color: #7fa6d9;
+    width: 14px;
+    text-align: center;
+}
+
+/* ── Wrap do input ── */
+.campo-input-wrap {
+    position: relative;
+}
+
+/* ── Input / Select base ── */
+.campo-input {
+    width: 100%;
+    padding: 13px 16px;
+    border: 1.5px solid rgba(79, 127, 192, 0.28);
+    border-radius: 13px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(242, 247, 255, 0.9));
+    color: #2f4666;
+    font-size: 15px;
+    font-family: 'Inter', Arial, sans-serif;
+    font-weight: 500;
+    outline: none;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.85),
+        0 1px 4px rgba(34, 55, 88, 0.08);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.campo-input::placeholder {
+    color: #8fa3bf;
+    font-weight: 400;
+}
+
+.campo-input:focus {
+    border-color: #4f7fc0;
+    background: #ffffff;
+    box-shadow:
+        0 0 0 4px rgba(79, 127, 192, 0.14),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        0 4px 12px rgba(34, 55, 88, 0.1);
+}
+
+.campo-input:hover:not(:focus) {
+    border-color: rgba(79, 127, 192, 0.5);
+}
+
+/* ── Select com seta customizada ── */
+.campo-select-wrap {
+    display: flex;
+    align-items: center;
+}
+
+.campo-select {
+    padding-right: 40px;
+    cursor: pointer;
+}
+
+.select-arrow {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #7fa6d9;
+    font-size: 12px;
+    pointer-events: none;
+    transition: transform 0.2s;
+}
+
+.campo-select:focus + .select-arrow {
+    transform: translateY(-50%) rotate(180deg);
+}
+
+/* ── Campo de senha com botão toggle ── */
+.campo-senha-wrap .campo-input {
+    padding-right: 50px;
+}
+
+.toggle-senha {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #8fa3bf;
+    font-size: 15px;
+    padding: 4px;
+    border-radius: 6px;
+    transition: color 0.2s ease, background 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.toggle-senha:hover {
+    color: #4f7fc0;
+    background: rgba(79, 127, 192, 0.1);
+}
+
+/* ── Aviso / feedback de ação ── */
+.cadastro-aviso {
+    min-height: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--suave);
+    text-align: center;
+    transition: opacity 0.3s;
+}
+
+/* ── Botão principal Salvar ── */
+.btn-cadastrar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 14px 20px;
+    border: none;
+    border-radius: 13px;
+    background: linear-gradient(135deg, #4f7fc0, #7fa6d9);
+    color: #fff;
+    font-size: 16px;
+    font-family: 'Inter', Arial, sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    box-shadow:
+        0 4px 14px rgba(79, 127, 192, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    margin-top: 4px;
+}
+
+.btn-cadastrar:hover {
+    transform: translateY(-2px);
+    box-shadow:
+        0 8px 24px rgba(79, 127, 192, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    background: linear-gradient(135deg, #3a6aad, #6a96cc);
+}
+
+.btn-cadastrar:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(79, 127, 192, 0.3);
+}
+
+.btn-cadastrar:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(79, 127, 192, 0.3);
+}
+
+/* ════════════════════
+   RESPONSIVIDADE
+   ════════════════════ */
+
+/* Tablet */
+@media (max-width: 600px) {
+    .cadastro-main {
+        padding: 20px 12px 36px;
+        align-items: flex-start;
+        padding-top: 24px;
+    }
+
+    .cadastro-card {
+        padding: 28px 20px;
+        border-radius: 20px;
+    }
+
+    .cadastro-titulo {
+        font-size: 26px;
+    }
+
+    .cadastro-icon-wrap {
+        width: 64px;
+        height: 64px;
+        font-size: 26px;
+        border-radius: 18px;
+    }
+}
+
+/* Mobile pequeno */
+@media (max-width: 380px) {
+    .cadastro-card {
+        padding: 22px 16px;
+        border-radius: 18px;
+    }
+
+    .cadastro-titulo {
+        font-size: 22px;
+    }
+
+    .campo-input {
+        font-size: 14px;
+        padding: 11px 14px;
+    }
+
+    .btn-cadastrar {
+        font-size: 15px;
+        padding: 13px 16px;
+    }
+}

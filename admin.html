@@ -8,6 +8,10 @@
     <meta property="og:image" content="scr/imagens/anjos_logo.png">
     <meta property="og:title" content="Painel Administrativo - SOS-Anjo">
     <link rel="stylesheet" href="scr/css/main.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="icon" type="image/png" sizes="32x32" href="scr/imagens/favicons/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="scr/imagens/favicons/favicon-16x16.png">
     <link rel="apple-touch-icon" sizes="180x180" href="scr/imagens/favicons/apple-touch-icon-180x180.png">
@@ -16,6 +20,10 @@
 </head>
 
 <body>
+
+    <!-- Orbs de fundo -->
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
 
     <header class="topo">
         <div class="logo">
@@ -27,45 +35,114 @@
         </div>
 
         <div class="login-area">
-            <button id="btnIrInicio" class="btn neutro">VOLTAR INÍCIO</button>
+            <button id="btnIrInicio" class="btn neutro">
+                <i class="fa-solid fa-arrow-left"></i> Voltar Início
+            </button>
         </div>
     </header>
 
-    <main class="container container-admin">
+    <main class="container-admin">
         <section class="painel-card painel-admin">
-            <h1 class="painel-titulo">Painel de Administração</h1>
-            <p id="adminAviso" class="admin-aviso"></p>
 
+            <!-- Cabeçalho visual do painel -->
+            <div style="display:flex; align-items:center; gap:14px; margin-bottom:20px;">
+                <div class="pagina-icon-wrap" style="width:52px; height:52px; font-size:22px; border-radius:16px; margin:0; flex-shrink:0;">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <div>
+                    <h1 class="painel-titulo" style="margin:0; font-size:24px;">Painel de Administração</h1>
+                    <p id="adminAviso" class="admin-aviso" style="margin:0;"></p>
+                </div>
+            </div>
+
+            <!-- Bloco: Criar primeiro admin -->
             <section id="adminBlocoCriacao" class="oculto admin-bloco">
-                <h2 class="bloco-titulo">Criar primeiro administrador</h2>
-
-                <div class="login-area linha-formulario">
-                    <input type="text" id="adminCriarNome" placeholder="Nome do administrador">
-                    <select id="adminCriarLocal">
-                        <option value="">Carregando locais...</option>
-                    </select>
-                    <input type="password" id="adminCriarSenha" placeholder="Defina a senha admin">
-                    <button id="btnCriarAdmin" class="btn primario">Criar Administrador</button>
+                <h2 class="bloco-titulo">
+                    <i class="fa-solid fa-user-shield" style="color:#7fa6d9; margin-right:6px;"></i>
+                    Criar primeiro administrador
+                </h2>
+                <div class="admin-form-inline">
+                    <div class="form-group">
+                        <label for="adminCriarNome" class="form-label">
+                            <i class="fa-solid fa-user form-label-icon"></i> Nome do administrador
+                        </label>
+                        <div class="form-input-wrap">
+                            <input type="text" id="adminCriarNome" class="form-input" placeholder="Ex: Carlos Admin">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="adminCriarLocal" class="form-label">
+                            <i class="fa-solid fa-location-dot form-label-icon"></i> Local / Unidade
+                        </label>
+                        <div class="form-input-wrap form-select-wrap">
+                            <select id="adminCriarLocal" class="form-input form-select">
+                                <option value="">Carregando locais...</option>
+                            </select>
+                            <i class="fa-solid fa-chevron-down form-select-arrow"></i>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="adminCriarSenha" class="form-label">
+                            <i class="fa-solid fa-lock form-label-icon"></i> Senha
+                        </label>
+                        <div class="form-input-wrap">
+                            <input type="password" id="adminCriarSenha" class="form-input" placeholder="Defina a senha admin">
+                        </div>
+                    </div>
+                    <button id="btnCriarAdmin" class="btn-acao-principal">
+                        <i class="fa-solid fa-user-plus"></i> Criar Administrador
+                    </button>
                 </div>
             </section>
 
+            <!-- Bloco: Login admin -->
             <section id="adminBlocoLogin" class="oculto admin-bloco">
-                <h2 class="bloco-titulo">Login de administrador</h2>
-                <div class="login-area linha-formulario">
-                    <input type="text" id="adminLoginNome" placeholder="Nome de login admin">
-                    <input type="password" id="adminLoginSenha" placeholder="Senha de administrador">
-                    <button id="btnAdminLogin" class="btn primario">Entrar no Painel</button>
+                <h2 class="bloco-titulo">
+                    <i class="fa-solid fa-right-to-bracket" style="color:#7fa6d9; margin-right:6px;"></i>
+                    Login de administrador
+                </h2>
+                <div class="admin-form-inline">
+                    <div class="form-group">
+                        <label for="adminLoginNome" class="form-label">
+                            <i class="fa-solid fa-user form-label-icon"></i> Nome de login
+                        </label>
+                        <div class="form-input-wrap">
+                            <input type="text" id="adminLoginNome" class="form-input" placeholder="Nome de login admin">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="adminLoginSenha" class="form-label">
+                            <i class="fa-solid fa-lock form-label-icon"></i> Senha
+                        </label>
+                        <div class="form-input-wrap">
+                            <input type="password" id="adminLoginSenha" class="form-input" placeholder="Senha de administrador">
+                        </div>
+                    </div>
+                    <button id="btnAdminLogin" class="btn-acao-principal">
+                        <i class="fa-solid fa-right-to-bracket"></i> Entrar no Painel
+                    </button>
                 </div>
             </section>
 
+            <!-- Bloco: Painel principal -->
             <section id="adminPainel" class="oculto admin-bloco">
                 <div class="admin-toolbar">
                     <p id="adminUsuarioLogado" class="admin-usuario-logado"></p>
-                    <button id="btnIrCadastroPainel" class="btn neutro">Cadastro de Usuário</button>
-                    <button id="btnAdminAtualizar" class="btn primario">Atualizar</button>
-                    <button id="btnAdminLogout" class="btn neutro">Sair do Painel</button>
+                    <button id="btnIrCadastroPainel" class="btn neutro">
+                        <i class="fa-solid fa-user-plus"></i> Cadastro de Usuário
+                    </button>
+                    <button id="btnAdminAtualizar" class="btn primario">
+                        <i class="fa-solid fa-rotate-right"></i> Atualizar
+                    </button>
+                    <button id="btnAdminLogout" class="btn neutro">
+                        <i class="fa-solid fa-right-from-bracket"></i> Sair do Painel
+                    </button>
                 </div>
 
+                <h2 class="bloco-titulo">
+                    <i class="fa-solid fa-users" style="color:#7fa6d9; margin-right:6px;"></i>
+                    Usuários cadastrados
+                </h2>
                 <div class="tabela-wrap">
                     <table class="admin-tabela">
                         <thead>
@@ -81,7 +158,10 @@
                     </table>
                 </div>
 
-                <h2 class="bloco-titulo">Últimos logs do botão de emergência</h2>
+                <h2 class="bloco-titulo">
+                    <i class="fa-solid fa-triangle-exclamation" style="color:#e05252; margin-right:6px;"></i>
+                    Últimos logs do botão de emergência
+                </h2>
                 <div class="tabela-wrap">
                     <table class="admin-tabela">
                         <thead>
@@ -98,9 +178,11 @@
                 </div>
                 <div id="adminLogsPaginacao" class="admin-toolbar"></div>
             </section>
+
         </section>
     </main>
 
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="scr/js/main.js"></script>
 </body>
 

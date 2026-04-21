@@ -224,7 +224,18 @@ async function carregarAlertas() {
 
 // Desativa um alerta específico
 async function desativarAlerta(id) {
-  if (!confirm("Tem certeza que deseja desativar este alerta?")) {
+  const confirmou = await Swal.fire({
+    icon: "warning",
+    title: "Desativar alerta",
+    text: "Tem certeza que deseja desativar este alerta?",
+    showCancelButton: true,
+    confirmButtonText: "Sim, desativar",
+    cancelButtonText: "Cancelar",
+    confirmButtonColor: "#b53636",
+    cancelButtonColor: "#4f7fc0",
+  }).then((r) => r.isConfirmed);
+
+  if (!confirmou) {
     return;
   }
 
@@ -276,67 +287,24 @@ function aoSincronizarAlertas(evento) {
   carregarAlertas();
 }
 
-// Mostra uma mensagem temporária ao usuário
+// Mostra uma mensagem toast via SweetAlert2
 function mostrarMensagem(texto, tipo = "info") {
-  let corFundo = "#2196F3";
-  if (tipo === "sucesso") {
-    corFundo = "#4CAF50";
-  } else if (tipo === "erro") {
-    corFundo = "#f44336";
-  }
-
-  // Cria elemento de mensagem
-  const mensagem = document.createElement("div");
-  mensagem.className = `mensagem-flutuante mensagem-${tipo}`;
-  mensagem.textContent = texto;
-  mensagem.style.cssText = `
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background-color: ${corFundo};
-    color: white;
-    padding: 16px;
-    border-radius: 4px;
-    z-index: 10000;
-    max-width: 400px;
-    animation: slideIn 0.3s ease-out;
-  `;
-
-  document.body.appendChild(mensagem);
-
-  // Remove após 3 segundos
-  setTimeout(() => {
-    mensagem.style.animation = "slideOut 0.3s ease-out";
-    setTimeout(() => mensagem.remove(), 300);
-  }, 3000);
+  const iconMap = { sucesso: "success", erro: "error", info: "info" };
+  const icon = iconMap[tipo] || "info";
+  Swal.fire({
+    toast: true,
+    position: "bottom-end",
+    icon,
+    title: texto,
+    showConfirmButton: false,
+    timer: 3500,
+    timerProgressBar: true,
+    didOpen: (el) => {
+      el.addEventListener("mouseenter", Swal.stopTimer);
+      el.addEventListener("mouseleave", Swal.resumeTimer);
+    },
+  });
 }
-
-// Adiciona estilos de animação
-const style = document.createElement("style");
-style.textContent = `
-  @keyframes slideIn {
-    from {
-      transform: translateX(400px);
-      opacity: 0;
-    }
-    to {
-      transform: translateX(0);
-      opacity: 1;
-    }
-  }
-  
-  @keyframes slideOut {
-    from {
-      transform: translateX(0);
-      opacity: 1;
-    }
-    to {
-      transform: translateX(400px);
-      opacity: 0;
-    }
-  }
-`;
-document.head.appendChild(style);
 
 /* =============================
    Event Listeners

@@ -8,6 +8,10 @@
     <meta property="og:image" content="scr/imagens/anjos_logo.png">
     <meta property="og:title" content="Editar Usuário - SOS-Anjo">
     <link rel="stylesheet" href="scr/css/main.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="icon" type="image/png" sizes="32x32" href="scr/imagens/favicons/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="scr/imagens/favicons/favicon-16x16.png">
     <link rel="apple-touch-icon" sizes="180x180" href="scr/imagens/favicons/apple-touch-icon-180x180.png">
@@ -16,6 +20,10 @@
 </head>
 
 <body>
+
+    <!-- Orbs de fundo -->
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
 
     <header class="topo">
         <div class="logo">
@@ -32,26 +40,109 @@
             <button id="btnLogin" class="btn primario">Entrar</button>
             <button id="btnLogout" class="btn neutro">Sair</button>
             <button id="btnIrAdmin" class="btn neutro">Painel ADM</button>
-            <button id="btnIrInicio" class="btn neutro">Voltar Início</button>
+            <button id="btnIrInicio" class="btn neutro">
+                <i class="fa-solid fa-arrow-left"></i> Voltar Início
+            </button>
         </div>
     </header>
 
-    <main class="container">
-        <section id="editarUsuario" class="painel-card painel-cadastro">
-            <h1 class="painel-titulo">Editar Usuário</h1>
-            <div class="login-area linha-formulario">
-                <input type="hidden" id="idUsuarioEditar">
-                <input type="text" id="nome" placeholder="Nome do usuário">
-                <select id="local">
-                    <option value="">Carregando locais...</option>
-                </select>
-                <input type="password" id="senha" placeholder="Nova senha (opcional)">
-                <button id="btnEntrar" class="btn primario">Salvar Alterações</button>
+    <main class="container-pagina">
+
+        <div class="pagina-wrapper">
+
+            <!-- Cabeçalho -->
+            <div class="pagina-header">
+                <div class="pagina-icon-wrap">
+                    <i class="fa-solid fa-user-pen"></i>
+                </div>
+                <h1 class="pagina-titulo">Editar Usuário</h1>
+                <p class="pagina-subtitulo">Atualize os dados do usuário selecionado</p>
             </div>
-        </section>
+
+            <!-- Card do formulário -->
+            <section id="editarUsuario" class="painel-card painel-cadastro">
+                <div class="form-stack">
+
+                    <input type="hidden" id="idUsuarioEditar">
+
+                    <div class="form-group">
+                        <label for="nome" class="form-label">
+                            <i class="fa-solid fa-user form-label-icon"></i>
+                            Nome do usuário
+                        </label>
+                        <div class="form-input-wrap">
+                            <input
+                                type="text"
+                                id="nome"
+                                class="form-input"
+                                placeholder="Nome do usuário"
+                                autocomplete="off"
+                            >
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="local" class="form-label">
+                            <i class="fa-solid fa-location-dot form-label-icon"></i>
+                            Local / Unidade
+                        </label>
+                        <div class="form-input-wrap form-select-wrap">
+                            <select id="local" class="form-input form-select">
+                                <option value="">Carregando locais...</option>
+                            </select>
+                            <i class="fa-solid fa-chevron-down form-select-arrow"></i>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="senha" class="form-label">
+                            <i class="fa-solid fa-lock form-label-icon"></i>
+                            Nova senha
+                        </label>
+                        <div class="form-input-wrap form-senha-wrap">
+                            <input
+                                type="password"
+                                id="senha"
+                                class="form-input"
+                                placeholder="Nova senha (opcional)"
+                                autocomplete="new-password"
+                            >
+                            <button type="button" class="form-toggle-senha" id="toggleSenha" aria-label="Mostrar/ocultar senha">
+                                <i class="fa-solid fa-eye" id="iconeSenha"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-aviso" id="editarAviso" role="alert" aria-live="polite"></div>
+
+                    <button id="btnEntrar" class="btn-acao-principal">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        Salvar Alterações
+                    </button>
+
+                </div>
+            </section>
+
+        </div>
+
     </main>
 
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="scr/js/main.js"></script>
+    <script>
+        // Toggle visibilidade da senha
+        const toggleSenha = document.getElementById('toggleSenha');
+        const campoSenha = document.getElementById('senha');
+        const iconeSenha = document.getElementById('iconeSenha');
+
+        if (toggleSenha && campoSenha) {
+            toggleSenha.addEventListener('click', () => {
+                const visivel = campoSenha.type === 'text';
+                campoSenha.type = visivel ? 'password' : 'text';
+                iconeSenha.className = visivel ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash';
+            });
+        }
+    </script>
 
 </body>
 </html>

@@ -46,6 +46,40 @@
     transform: scale(0.965);
 }
 
+/* ── Estado desabilitado (não logado) ── */
+#btnEmergencia:disabled,
+#btnEmergencia.desabilitado {
+    background:
+        radial-gradient(circle at 36% 28%, rgba(200,200,200,0.25) 0%, transparent 30%),
+        radial-gradient(circle at 38% 30%, #555555 0%, #333333 38%, #222222 65%, #111111 100%);
+    color: #888888;
+    text-shadow: none;
+    cursor: not-allowed;
+    box-shadow:
+        0 0 0 10px #181818,
+        0 0 0 18px #3a3a3a,
+        0 0 0 22px #555555,
+        0 0 0 26px #3a3a3a,
+        0 0 0 32px #2e2e2e,
+        0 0 20px 4px rgba(80, 80, 80, 0.3),
+        inset 0 -20px 50px rgba(0,0,0,0.55);
+    opacity: 0.65;
+    transform: none;
+}
+
+#btnEmergencia:disabled:hover,
+#btnEmergencia.desabilitado:hover {
+    box-shadow:
+        0 0 0 10px #181818,
+        0 0 0 18px #3a3a3a,
+        0 0 0 22px #555555,
+        0 0 0 26px #3a3a3a,
+        0 0 0 32px #2e2e2e,
+        0 0 20px 4px rgba(80, 80, 80, 0.3),
+        inset 0 -20px 50px rgba(0,0,0,0.55);
+    transform: none;
+}
+
 .push-text {
     font-size: 36px;
     line-height: 1;

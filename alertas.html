@@ -8,6 +8,10 @@
     <meta property="og:image" content="scr/imagens/anjos_logo.png">
     <meta property="og:title" content="Painel de Alertas - SOS-Anjo">
     <link rel="stylesheet" href="scr/css/main.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="icon" type="image/png" sizes="32x32" href="scr/imagens/favicons/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="scr/imagens/favicons/favicon-16x16.png">
     <link rel="apple-touch-icon" sizes="180x180" href="scr/imagens/favicons/apple-touch-icon-180x180.png">
@@ -16,6 +20,10 @@
 </head>
 
 <body>
+
+    <!-- Orbs de fundo -->
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
 
     <header class="topo">
         <div class="logo">
@@ -27,40 +35,60 @@
         </div>
 
         <div class="login-area">
-            <button id="btnIrInicio" class="btn neutro">VOLTAR INÍCIO</button>
+            <button id="btnIrInicio" class="btn neutro">
+                <i class="fa-solid fa-arrow-left"></i> Voltar Início
+            </button>
         </div>
     </header>
 
-    <main class="container container-alertas">
+    <main class="container-alertas">
         <section class="painel-card painel-alertas">
-            <h1 class="painel-titulo">Painel de Alertas Ativos</h1>
-            
+
+            <!-- Cabeçalho visual -->
+            <div style="display:flex; align-items:center; gap:14px; margin-bottom:20px;">
+                <div class="pagina-icon-wrap" style="width:52px; height:52px; font-size:22px; border-radius:16px; margin:0; flex-shrink:0; background: linear-gradient(135deg, #b53636, #e05252); box-shadow: 0 8px 24px rgba(180,50,50,0.35);">
+                    <i class="fa-solid fa-bell"></i>
+                </div>
+                <div>
+                    <h1 class="painel-titulo" style="margin:0; font-size:24px;">Painel de Alertas Ativos</h1>
+                </div>
+            </div>
+
             <div id="alertasInfo" class="alertas-info">
-                <p id="totalAlertasTexto" class="total-alertas">Total de alertas: <strong>0</strong></p>
-                <button id="btnAtualizarAlertas" class="btn primario">Atualizar</button>
+                <p id="totalAlertasTexto" class="total-alertas">
+                    Total de alertas: <strong>0</strong>
+                </p>
+                <button id="btnAtualizarAlertas" class="btn primario">
+                    <i class="fa-solid fa-rotate-right"></i> Atualizar
+                </button>
             </div>
 
             <div id="alertasVazio" class="alertas-vazio">
-                <p>Nenhum alerta ativo no momento.</p>
+                <i class="fa-regular fa-circle-check" style="font-size:32px; color:#b2dfcd; display:block; margin-bottom:12px;"></i>
+                Nenhum alerta ativo no momento.
             </div>
 
             <div id="alertasContainer" class="alertas-container oculto">
-                <table class="alertas-tabela">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Usuário</th>
-                            <th>Local</th>
-                            <th>Hora do Alerta</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="alertasCorpo"></tbody>
-                </table>
+                <div class="tabela-wrap">
+                    <table class="alertas-tabela">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Usuário</th>
+                                <th>Local</th>
+                                <th>Hora do Alerta</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="alertasCorpo"></tbody>
+                    </table>
+                </div>
             </div>
+
         </section>
     </main>
 
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="scr/js/alertas.js"></script>
 
 </body>

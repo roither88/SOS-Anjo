@@ -9,28 +9,34 @@
     <title>SOS ANJOS</title>
 
     <link rel="stylesheet" href="scr/css/main.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="icon" type="image/png" sizes="32x32" href="scr/imagens/favicons/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="scr/imagens/favicons/favicon-16x16.png">
     <link rel="apple-touch-icon" sizes="180x180" href="scr/imagens/favicons/apple-touch-icon-180x180.png">
     <link rel="android-chrome-icon" sizes="192x192" href="scr/imagens/favicons/android-icon-192x192.png">
-   
 </head>
 
 <body>
+
+    <!-- Orbs de fundo -->
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
 
     <!-- HEADER -->
     <header class="topo">
         <div class="logo">
             <img src="scr/imagens/anjos_logo.png" alt="SOS ANJO Logo" style="height: 45px; margin-right: 10px;">
         </div>
-         <div class="navbar-esquerda">
+        <div class="navbar-esquerda">
             <span id="statusLogin" class="status-login">Não logado</span>
         </div>
 
         <div class="login-area">
             <input type="text" id="loginNome" placeholder="Nome">
             <input type="password" id="loginSenha" placeholder="Senha">
-
             <button class="btn primario" id="btnLogin">Entrar</button>
             <button class="btn neutro" id="btnLogout">Sair</button>
             <button class="btn neutro" id="btnIrAdmin">Painel ADM</button>
@@ -40,20 +46,19 @@
 
     <!-- CONTEÚDO -->
     <main class="container">
-
         <button id="btnEmergencia">
             SOS <br> EMERGÊNCIA
         </button>
-    <button class="btn neutro oculto" id="btnDesativarAlerta" type="button">
+        <button class="btn neutro oculto" id="btnDesativarAlerta" type="button">
             Desativar alerta sonoro
         </button>
 
         <audio id="audioAlerta" preload="auto" loop>
             <source src="scr/audios/alerta2.mp3" type="audio/mpeg">
         </audio>
-
     </main>
 
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="scr/js/main.js"></script>
 
 </body>

@@ -1,192 +1,104 @@
+/* ═══════════════════════════════════════════
+   PAINEL.CSS — Página inicial (botão SOS)
+   ═══════════════════════════════════════════ */
+
+/* ── Container home ── */
 .container {
     height: calc(100vh - 70px);
-
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    padding-top: 70px;
+    position: relative;
+    z-index: 1;
 }
 
-/* BOTÃO EMERGÊNCIA */
+/* ── BOTÃO SOS EMERGÊNCIA ── */
 #btnEmergencia {
     width: 280px;
     height: 280px;
-
     border-radius: 50%;
     border: none;
-
-    background: radial-gradient(circle, #7fa6d9, #4f7fc0);
-    color: #0f2744;
-
-    font-size: 20px;
-    font-weight: bold;
+    background: radial-gradient(circle at 35% 35%, #7fa6d9, #3a6aad);
+    color: #fff;
+    font-size: 22px;
+    font-weight: 800;
+    font-family: 'Inter', Arial, sans-serif;
     text-align: center;
-
+    letter-spacing: 1px;
     cursor: pointer;
-
     box-shadow:
-        0 10px 25px rgba(0,0,0,0.15),
-        inset 0 -5px 10px rgba(0,0,0,0.1);
+        0 0 0 10px rgba(79, 127, 192, 0.12),
+        0 0 0 22px rgba(79, 127, 192, 0.06),
+        0 16px 40px rgba(79, 127, 192, 0.4),
+        inset 0 -6px 12px rgba(0, 0, 0, 0.12),
+        inset 0 4px 8px rgba(255, 255, 255, 0.25);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    position: relative;
+}
 
-    transition: 0.3s;
+#btnEmergencia::before {
+    content: '';
+    position: absolute;
+    inset: 16px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.22);
+    pointer-events: none;
 }
 
 #btnEmergencia:hover {
-    transform: scale(1.08);
+    transform: scale(1.07);
+    box-shadow:
+        0 0 0 14px rgba(79, 127, 192, 0.14),
+        0 0 0 28px rgba(79, 127, 192, 0.07),
+        0 24px 56px rgba(79, 127, 192, 0.5),
+        inset 0 -6px 12px rgba(0, 0, 0, 0.12),
+        inset 0 4px 8px rgba(255, 255, 255, 0.25);
 }
 
+#btnEmergencia:active {
+    transform: scale(0.97);
+}
+
+/* Botão desativar alerta */
 #btnDesativarAlerta {
-    margin-top: 22px;
-    background: #b53636;
+    margin-top: 28px;
+    background: linear-gradient(135deg, #b53636, #e05252);
     color: #fff;
     font-weight: 700;
+    border-color: rgba(160, 40, 40, 0.2);
+    box-shadow: 0 4px 14px rgba(180, 50, 50, 0.4);
+    padding: 12px 24px;
+    font-size: 15px;
 }
 
 #btnDesativarAlerta:hover {
-    background: #922a2a;
-    transform: scale(1.05);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(180, 50, 50, 0.5);
 }
 
 /* RESPONSIVIDADE */
-
-/* Tablet */
 @media (max-width: 1024px) {
     #btnEmergencia {
-        width: 220px;
-        height: 220px;
+        width: 240px;
+        height: 240px;
+        font-size: 20px;
     }
 }
 
-/* Celular */
 @media (max-width: 768px) {
+    #btnEmergencia {
+        width: 200px;
+        height: 200px;
+        font-size: 18px;
+    }
+}
+
+@media (max-width: 480px) {
     #btnEmergencia {
         width: 180px;
         height: 180px;
         font-size: 16px;
     }
 }
-
-/* PAINEL DE ALERTAS */
-.painel-alertas {
-    width: 90%;
-    max-width: 1200px;
-    margin: 20px auto;
-}
-
-.alertas-info {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    padding: 15px;
-    background-color: #f5f5f5;
-    border-radius: 8px;
-}
-
-.total-alertas {
-    font-size: 16px;
-    margin: 0;
-    color: var(--texto);
-}
-
-.alertas-vazio {
-    text-align: center;
-    padding: 40px;
-    background-color: #f9f9f9;
-    border: 1px dashed #ddd;
-    border-radius: 8px;
-    color: #666;
-}
-
-.alertas-container {
-    width: 100%;
-    margin-top: 20px;
-    overflow-x: auto;
-}
-
-.alertas-container.oculto {
-    display: none;
-}
-
-.alertas-tabela {
-    width: 100%;
-    min-width: 560px;
-    border-collapse: collapse;
-    background-color: white;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    border-radius: 8px;
-    overflow: hidden;
-}
-
-.alertas-tabela thead {
-    background-color: var(--primaria);
-    color: white;
-}
-
-.alertas-tabela th {
-    padding: 12px;
-    text-align: left;
-    font-weight: bold;
-}
-
-.alertas-tabela td {
-    padding: 12px;
-    border-bottom: 1px solid #eee;
-}
-
-.alertas-tabela tbody tr:hover {
-    background-color: #f9f9f9;
-}
-
-.btn-desativar {
-    padding: 10px 14px;
-    min-height: 44px;
-    border: none;
-    border-radius: 4px;
-    background-color: #b42a2a;
-    color: white;
-    cursor: pointer;
-    font-weight: bold;
-    transition: 0.3s;
-}
-
-.btn-desativar:hover {
-    background-color: #8f1f1f;
-    transform: scale(1.05);
-}
-
-.oculto {
-    display: none;
-}
-
-@media (max-width: 768px) {
-    .painel-alertas {
-        width: 100%;
-        margin: 8px auto;
-    }
-
-    .alertas-info {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 10px;
-    }
-
-    .alertas-info .btn {
-        min-height: 44px;
-    }
-
-    .btn-desativar {
-        width: 100%;
-    }
-}
-
-@media (max-width: 480px) {
-    .alertas-tabela {
-        min-width: 500px;
-    }
-
-    .alertas-vazio {
-        padding: 24px 14px;
-    }
-}
-
