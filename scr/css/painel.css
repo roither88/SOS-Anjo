@@ -37,13 +37,13 @@
 
 #btnDesativarAlerta {
     margin-top: 22px;
-    background: #f05f5f;
+    background: #b53636;
     color: #fff;
     font-weight: 700;
 }
 
 #btnDesativarAlerta:hover {
-    background: #d84a4a;
+    background: #922a2a;
     transform: scale(1.05);
 }
 

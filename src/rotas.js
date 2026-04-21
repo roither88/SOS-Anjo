@@ -21,6 +21,97 @@ const {
 // Importa módulo de banco de dados (SQLite)
 const db = require('./banco');
 
+function contarAdminsAsync(banco) {
+  return new Promise((resolve, reject) => {
+    db.contarAdmins(banco, (erro, totalAdmins) => {
+      if (erro) {
+        reject(erro);
+        return;
+      }
+
+      resolve(totalAdmins);
+    });
+  });
+}
+
+function obterLocalPorIdAsync(banco, localId) {
+  return new Promise((resolve, reject) => {
+    db.obterLocalPorId(banco, localId, (erro, localSelecionado) => {
+      if (erro) {
+        reject(erro);
+        return;
+      }
+
+      resolve(localSelecionado);
+    });
+  });
+}
+
+function inserirUsuarioAsync(banco, nome, localId, senhaHash, isAdmin) {
+  return new Promise((resolve, reject) => {
+    db.inserirUsuario(banco, nome, localId, senhaHash, isAdmin, (erro, id) => {
+      if (erro) {
+        reject(erro);
+        return;
+      }
+
+      resolve(id);
+    });
+  });
+}
+
+function buscarUsuarioPorIdAsync(banco, usuarioId) {
+  return new Promise((resolve, reject) => {
+    db.buscarUsuarioPorId(banco, usuarioId, (erro, usuario) => {
+      if (erro) {
+        reject(erro);
+        return;
+      }
+
+      resolve(usuario);
+    });
+  });
+}
+
+function atualizarPerfilAsync(banco, usuarioId, novoAdmin) {
+  return new Promise((resolve, reject) => {
+    db.atualizarPerfil(banco, usuarioId, novoAdmin, (erro) => {
+      if (erro) {
+        reject(erro);
+        return;
+      }
+
+      resolve();
+    });
+  });
+}
+
+function atualizarUsuarioAsync(banco, usuarioId, nome, localId, senhaHash) {
+  return new Promise((resolve, reject) => {
+    db.atualizarUsuario(banco, usuarioId, nome, localId, senhaHash, (erro) => {
+      if (erro) {
+        reject(erro);
+        return;
+      }
+
+      resolve();
+    });
+  });
+}
+
+function removerUsuarioAsync(banco, usuarioId) {
+  return new Promise((resolve, reject) => {
+    db.removerUsuario(banco, usuarioId, (erro) => {
+      if (erro) {
+        reject(erro);
+        return;
+      }
+
+      resolve();
+    });
+  });
+}
+
 // =============================================================================
 // SEÇÃO 1: ROTAS PÚBLICAS (Não requerem autenticação)
 // =============================================================================
@@ -480,74 +571,56 @@ function rotaAdminStatus(req, res, urlRequisicao, banco) {
 // Retorna: { id, nome, local, local_id, admin: 1 }
 // Status HTTP: 201 (Criado), 400 (Dados inválidos), 409 (Já existe admin), 500 (Erro BD)
 function rotaCriarAdminInicial(req, res, urlRequisicao, banco) {
-  // Verifica se é um POST para /api/admin/criar-inicial
-  if (req.method === 'POST' && urlRequisicao.pathname === '/api/admin/criar-inicial') {
-    // Lê o corpo JSON com dados do novo admin
-    lerCorpoJson(req)
-      .then((corpo) => {
-        // Extrai dados
-        const nome = String(corpo.nome || '').trim();
-        const localEntrada = obterLocalIdDoCorp(corpo);
-        const senha = String(corpo.senha || '').trim();
-        const senhaHash = senha ? gerarHashSenha(senha) : ''; // Hash da senha
-
-        // Valida se nome e senha foram fornecidos
-        if (!nome || !senha) {
-          responderJson(res, 400, { erro: 'Informe nome e senha do administrador.' });
-          return;
-        }
-
-        // Verifica se já existe algum administrador
-        db.contarAdmins(banco, (erroCount, totalAdmins) => {
-          if (erroCount) {
-            responderJson(res, 500, { erro: 'Erro ao validar administradores existentes.' });
-            return;
-          }
-
-          // Protege: só permite criar o primeiro admin
-          if (totalAdmins > 0) {
-            responderJson(res, 409, { erro: 'Ja existe administrador cadastrado.' });
-            return;
-          }
-
-          // Busca o local selecionado
-          db.obterLocalPorId(banco, localEntrada, (erroLocal, localSelecionado) => {
-            if (erroLocal) {
-              responderJson(res, 500, { erro: 'Erro ao resolver o local do administrador.' });
-              return;
-            }
-
-            // Valida se o local existe
-            if (!localSelecionado) {
-              responderJson(res, 400, { erro: 'Selecione um local valido.' });
-              return;
-            }
-
-            // Insere o novo administrador (true = é admin)
-            db.inserirUsuario(banco, nome, localSelecionado.id, senhaHash, true, (erro, id) => {
-              if (erro) {
-                responderJson(res, 500, { erro: 'Nao foi possivel criar o administrador.' });
-                return;
-              }
-
-              // Retorna os dados do novo admin criado (201 = Created)
-              responderJson(res, 201, {
-                id,
-                nome,
-                local: localSelecionado.local,
-                local_id: localSelecionado.id,
-                admin: 1,
-              });
-            });
-          });
-        });
-      })
-      .catch(() => {
-        responderJson(res, 400, { erro: 'Corpo JSON invalido.' });
-      });
-    return true;
+  if (req.method !== 'POST' || urlRequisicao.pathname !== '/api/admin/criar-inicial') {
+    return false;
   }
-  return false;
+
+  processarCriacaoAdminInicial(req, res, banco);
+  return true;
+}
+
+async function processarCriacaoAdminInicial(req, res, banco) {
+  try {
+    const corpo = await lerCorpoJson(req);
+    const nome = String(corpo.nome || '').trim();
+    const localEntrada = obterLocalIdDoCorp(corpo);
+    const senha = String(corpo.senha || '').trim();
+
+    if (!nome || !senha) {
+      responderJson(res, 400, { erro: 'Informe nome e senha do administrador.' });
+      return;
+    }
+
+    const totalAdmins = await contarAdminsAsync(banco);
+    if (totalAdmins > 0) {
+      responderJson(res, 409, { erro: 'Ja existe administrador cadastrado.' });
+      return;
+    }
+
+    const localSelecionado = await obterLocalPorIdAsync(banco, localEntrada);
+    if (!localSelecionado) {
+      responderJson(res, 400, { erro: 'Selecione um local valido.' });
+      return;
+    }
+
+    const senhaHash = gerarHashSenha(senha);
+    const id = await inserirUsuarioAsync(banco, nome, localSelecionado.id, senhaHash, true);
+
+    responderJson(res, 201, {
+      id,
+      nome,
+      local: localSelecionado.local,
+      local_id: localSelecionado.id,
+      admin: 1,
+    });
+  } catch (error_) {
+    if (error_ instanceof SyntaxError) {
+      responderJson(res, 400, { erro: 'Corpo JSON invalido.' });
+      return;
+    }
+
+    responderJson(res, 500, { erro: 'Nao foi possivel criar o administrador.' });
+  }
 }
 
 // ========== ROTA: POST /api/admin/login ==========
@@ -640,97 +713,62 @@ function rotaListarUsuarios(req, res, urlRequisicao, banco) {
 // Status HTTP: 200 (OK), 400 (ID inválido), 404 (Usuário não encontrado), 409 (Conflito), 500 (Erro BD)
 // Proteção: Não permite remover o último administrador do sistema
 function rotaAtualizarPerfilUsuario(req, res, urlRequisicao, banco) {
-  // Verifica se é um POST para /api/admin/usuario/perfil
-  if (req.method === 'POST' && urlRequisicao.pathname === '/api/admin/usuario/perfil') {
-    // Lê o corpo JSON
-    lerCorpoJson(req)
-      .then((corpo) => {
-        // Extrai o ID do usuário e o novo status de admin
-        const usuarioId = Number(corpo.id);
-        const novoAdmin = Number(corpo.admin) === 1 ? 1 : 0; // Garante que seja 0 ou 1
-
-        // Valida o ID
-        if (!ehIdValido(usuarioId)) {
-          responderJson(res, 400, { erro: 'Informe um id de usuario valido.' });
-          return;
-        }
-
-        // Busca o usuário no banco de dados
-        db.buscarUsuarioPorId(banco, usuarioId, (erroBusca, usuarioAlvo) => {
-          if (erroBusca) {
-            responderJson(res, 500, { erro: 'Erro ao consultar usuario.' });
-            return;
-          }
-
-          // Se o usuário não existe
-          if (!usuarioAlvo) {
-            responderJson(res, 404, { erro: 'Usuario nao encontrado.' });
-            return;
-          }
-
-          // Se o perfil já está com o novo valor
-          if (Number(usuarioAlvo.admin) === novoAdmin) {
-            responderJson(res, 200, {
-              id: usuarioId,
-              admin: novoAdmin,
-              mensagem: 'Perfil ja estava atualizado.',
-            });
-            return;
-          }
-
-          // PROTEÇÃO: Impede remover o último administrador do sistema
-          if (Number(usuarioAlvo.admin) === 1 && novoAdmin === 0) {
-            // Se quer remover um admin (rebaixar), verifica se há mais admins
-            db.contarAdmins(banco, (erroCount, totalAdmins) => {
-              if (erroCount) {
-                responderJson(res, 500, { erro: 'Erro ao validar quantidade de administradores.' });
-                return;
-              }
-
-              // Se este é o único admin, não permite remover
-              if (totalAdmins <= 1) {
-                responderJson(res, 409, { erro: 'Nao e permitido remover o ultimo administrador do sistema.' });
-                return;
-              }
-
-              // Pode remover, pois existem outros admins
-              db.atualizarPerfil(banco, usuarioId, novoAdmin, (erroUpdate) => {
-                if (erroUpdate) {
-                  responderJson(res, 500, { erro: 'Nao foi possivel atualizar o perfil.' });
-                  return;
-                }
-
-                responderJson(res, 200, {
-                  id: usuarioId,
-                  admin: novoAdmin,
-                  mensagem: novoAdmin === 1 ? 'Usuario promovido para administrador.' : 'Usuario rebaixado para perfil comum.',
-                });
-              });
-            });
-            return;
-          }
-
-          // Se não é um caso especial, atualiza normalmente
-          db.atualizarPerfil(banco, usuarioId, novoAdmin, (erroUpdate) => {
-            if (erroUpdate) {
-              responderJson(res, 500, { erro: 'Nao foi possivel atualizar o perfil.' });
-              return;
-            }
-
-            responderJson(res, 200, {
-              id: usuarioId,
-              admin: novoAdmin,
-              mensagem: novoAdmin === 1 ? 'Usuario promovido para administrador.' : 'Usuario rebaixado para perfil comum.',
-            });
-          });
-        });
-      })
-      .catch(() => {
-        responderJson(res, 400, { erro: 'Corpo JSON invalido.' });
-      });
-    return true;
+  if (req.method !== 'POST' || urlRequisicao.pathname !== '/api/admin/usuario/perfil') {
+    return false;
   }
-  return false;
+
+  processarAtualizacaoPerfilUsuario(req, res, banco);
+  return true;
+}
+
+async function processarAtualizacaoPerfilUsuario(req, res, banco) {
+  try {
+    const corpo = await lerCorpoJson(req);
+    const usuarioId = Number(corpo.id);
+    const novoAdmin = Number(corpo.admin) === 1 ? 1 : 0;
+
+    if (!ehIdValido(usuarioId)) {
+      responderJson(res, 400, { erro: 'Informe um id de usuario valido.' });
+      return;
+    }
+
+    const usuarioAlvo = await buscarUsuarioPorIdAsync(banco, usuarioId);
+    if (!usuarioAlvo) {
+      responderJson(res, 404, { erro: 'Usuario nao encontrado.' });
+      return;
+    }
+
+    if (Number(usuarioAlvo.admin) === novoAdmin) {
+      responderJson(res, 200, {
+        id: usuarioId,
+        admin: novoAdmin,
+        mensagem: 'Perfil ja estava atualizado.',
+      });
+      return;
+    }
+
+    if (Number(usuarioAlvo.admin) === 1 && novoAdmin === 0) {
+      const totalAdmins = await contarAdminsAsync(banco);
+      if (totalAdmins <= 1) {
+        responderJson(res, 409, { erro: 'Nao e permitido remover o ultimo administrador do sistema.' });
+        return;
+      }
+    }
+
+    await atualizarPerfilAsync(banco, usuarioId, novoAdmin);
+    responderJson(res, 200, {
+      id: usuarioId,
+      admin: novoAdmin,
+      mensagem: novoAdmin === 1 ? 'Usuario promovido para administrador.' : 'Usuario rebaixado para perfil comum.',
+    });
+  } catch (error_) {
+    if (error_ instanceof SyntaxError) {
+      responderJson(res, 400, { erro: 'Corpo JSON invalido.' });
+      return;
+    }
+
+    responderJson(res, 500, { erro: 'Nao foi possivel atualizar o perfil.' });
+  }
 }
 
 // ========== ROTA: POST /api/admin/usuario/atualizar ==========
@@ -739,89 +777,67 @@ function rotaAtualizarPerfilUsuario(req, res, urlRequisicao, banco) {
 // Retorna: { id, nome, local, local_id, mensagem }
 // Status HTTP: 200 (OK), 400 (Dados inválidos), 404 (Não encontrado), 409 (Conflito), 500 (Erro BD)
 function rotaAtualizarUsuario(req, res, urlRequisicao, banco) {
-  // Verifica se é um POST para /api/admin/usuario/atualizar
-  if (req.method === 'POST' && urlRequisicao.pathname === '/api/admin/usuario/atualizar') {
-    // Lê o corpo JSON com dados a atualizar
-    lerCorpoJson(req)
-      .then((corpo) => {
-        // Extrai dados
-        const usuarioId = Number(corpo.id);
-        const nome = String(corpo.nome || '').trim();
-        const localEntrada = obterLocalIdDoCorp(corpo);
-        const senha = corpo.senha ? String(corpo.senha).trim() : ''; // Senha é opcional
-
-        // Valida o ID
-        if (!ehIdValido(usuarioId)) {
-          responderJson(res, 400, { erro: 'Informe um id de usuario valido.' });
-          return;
-        }
-
-        // Valida o nome
-        if (!nome) {
-          responderJson(res, 400, { erro: 'Informe um nome valido para o usuario.' });
-          return;
-        }
-
-        // Gera hash da nova senha se fornecida
-        const senhaHash = senha ? gerarHashSenha(senha) : null;
-
-        // Valida o local
-        db.obterLocalPorId(banco, localEntrada, (erroLocal, localSelecionado) => {
-          if (erroLocal) {
-            responderJson(res, 500, { erro: 'Erro ao resolver o local do usuario.' });
-            return;
-          }
-
-          // Se o local não existe
-          if (!localSelecionado) {
-            responderJson(res, 400, { erro: 'Selecione um local valido.' });
-            return;
-          }
-
-          // Busca o usuário para validar que existe
-          db.buscarUsuarioPorId(banco, usuarioId, (erroBusca, usuario) => {
-            if (erroBusca) {
-              responderJson(res, 500, { erro: 'Erro ao consultar usuario.' });
-              return;
-            }
-
-            // Se não existe
-            if (!usuario) {
-              responderJson(res, 404, { erro: 'Usuario nao encontrado.' });
-              return;
-            }
-
-            // Atualiza o usuário no banco
-            db.atualizarUsuario(banco, usuarioId, nome, localSelecionado.id, senhaHash, (erroUpdate) => {
-              // Verifica se houve erro de constraint (nome duplicado)
-              if (erroUpdate) {
-                if (erroUpdate.code === 'SQLITE_CONSTRAINT') {
-                  responderJson(res, 409, { erro: 'Ja existe usuario com este nome.' });
-                  return;
-                }
-
-                responderJson(res, 500, { erro: 'Nao foi possivel atualizar o usuario.' });
-                return;
-              }
-
-              // Retorna os dados atualizados
-              responderJson(res, 200, {
-                id: usuarioId,
-                nome,
-                local: localSelecionado.local,
-                local_id: localSelecionado.id,
-                mensagem: 'Usuario atualizado com sucesso.',
-              });
-            });
-          });
-        });
-      })
-      .catch(() => {
-        responderJson(res, 400, { erro: 'Corpo JSON invalido.' });
-      });
-    return true;
+  if (req.method !== 'POST' || urlRequisicao.pathname !== '/api/admin/usuario/atualizar') {
+    return false;
   }
-  return false;
+
+  processarAtualizacaoUsuario(req, res, banco);
+  return true;
+}
+
+async function processarAtualizacaoUsuario(req, res, banco) {
+  try {
+    const corpo = await lerCorpoJson(req);
+    const usuarioId = Number(corpo.id);
+    const nome = String(corpo.nome || '').trim();
+    const localEntrada = obterLocalIdDoCorp(corpo);
+    const senha = corpo.senha ? String(corpo.senha).trim() : '';
+
+    if (!ehIdValido(usuarioId)) {
+      responderJson(res, 400, { erro: 'Informe um id de usuario valido.' });
+      return;
+    }
+
+    if (!nome) {
+      responderJson(res, 400, { erro: 'Informe um nome valido para o usuario.' });
+      return;
+    }
+
+    const localSelecionado = await obterLocalPorIdAsync(banco, localEntrada);
+    if (!localSelecionado) {
+      responderJson(res, 400, { erro: 'Selecione um local valido.' });
+      return;
+    }
+
+    const usuario = await buscarUsuarioPorIdAsync(banco, usuarioId);
+    if (!usuario) {
+      responderJson(res, 404, { erro: 'Usuario nao encontrado.' });
+      return;
+    }
+
+    const senhaHash = senha ? gerarHashSenha(senha) : null;
+    await atualizarUsuarioAsync(banco, usuarioId, nome, localSelecionado.id, senhaHash);
+
+    responderJson(res, 200, {
+      id: usuarioId,
+      nome,
+      local: localSelecionado.local,
+      local_id: localSelecionado.id,
+      mensagem: 'Usuario atualizado com sucesso.',
+    });
+  } catch (error_) {
+    if (error_ instanceof SyntaxError) {
+      responderJson(res, 400, { erro: 'Corpo JSON invalido.' });
+      return;
+    }
+
+    if (error_?.code === 'SQLITE_CONSTRAINT') {
+      responderJson(res, 409, { erro: 'Ja existe usuario com este nome.' });
+      return;
+    }
+
+    responderJson(res, 500, { erro: 'Nao foi possivel atualizar o usuario.' });
+  }
 }
 
 // ========== ROTA: POST /api/admin/usuario/remover ==========
@@ -831,83 +847,51 @@ function rotaAtualizarUsuario(req, res, urlRequisicao, banco) {
 // Status HTTP: 200 (OK), 400 (ID inválido), 404 (Não encontrado), 409 (Conflito), 500 (Erro BD)
 // Proteção: Não permite remover o último administrador do sistema
 function rotaRemoverUsuario(req, res, urlRequisicao, banco) {
-  // Verifica se é um POST para /api/admin/usuario/remover
-  if (req.method === 'POST' && urlRequisicao.pathname === '/api/admin/usuario/remover') {
-    // Lê o corpo JSON
-    lerCorpoJson(req)
-      .then((corpo) => {
-        // Extrai o ID do usuário a remover
-        const usuarioId = Number(corpo.id);
-
-        // Valida o ID
-        if (!ehIdValido(usuarioId)) {
-          responderJson(res, 400, { erro: 'Informe um id de usuario valido.' });
-          return;
-        }
-
-        // Busca o usuário para obter informações antes de deletar
-        db.buscarUsuarioPorId(banco, usuarioId, (erroBusca, usuarioAlvo) => {
-          if (erroBusca) {
-            responderJson(res, 500, { erro: 'Erro ao consultar usuario.' });
-            return;
-          }
-
-          // Se o usuário não existe
-          if (!usuarioAlvo) {
-            responderJson(res, 404, { erro: 'Usuario nao encontrado.' });
-            return;
-          }
-
-          // PROTEÇÃO: Se é um admin, verifica se pode ser removido
-          if (Number(usuarioAlvo.admin) === 1) {
-            db.contarAdmins(banco, (erroCount, totalAdmins) => {
-              if (erroCount) {
-                responderJson(res, 500, { erro: 'Erro ao validar quantidade de administradores.' });
-                return;
-              }
-
-              // Protege o último admin
-              if (totalAdmins <= 1) {
-                responderJson(res, 409, { erro: 'Nao e permitido remover o ultimo administrador do sistema.' });
-                return;
-              }
-
-              // Pode remover pois existem outros admins
-              db.removerUsuario(banco, usuarioId, (erroDelete) => {
-                if (erroDelete) {
-                  responderJson(res, 500, { erro: 'Nao foi possivel remover o usuario.' });
-                  return;
-                }
-
-                responderJson(res, 200, {
-                  id: usuarioId,
-                  mensagem: 'Usuario removido com sucesso.',
-                });
-              });
-            });
-            return;
-          }
-
-          // Se não é admin, remove normalmente
-          db.removerUsuario(banco, usuarioId, (erroDelete) => {
-            if (erroDelete) {
-              responderJson(res, 500, { erro: 'Nao foi possivel remover o usuario.' });
-              return;
-            }
-
-            responderJson(res, 200, {
-              id: usuarioId,
-              mensagem: 'Usuario removido com sucesso.',
-            });
-          });
-        });
-      })
-      .catch(() => {
-        responderJson(res, 400, { erro: 'Corpo JSON invalido.' });
-      });
-    return true;
+  if (req.method !== 'POST' || urlRequisicao.pathname !== '/api/admin/usuario/remover') {
+    return false;
   }
-  return false;
+
+  processarRemocaoUsuario(req, res, banco);
+  return true;
+}
+
+async function processarRemocaoUsuario(req, res, banco) {
+  try {
+    const corpo = await lerCorpoJson(req);
+    const usuarioId = Number(corpo.id);
+
+    if (!ehIdValido(usuarioId)) {
+      responderJson(res, 400, { erro: 'Informe um id de usuario valido.' });
+      return;
+    }
+
+    const usuarioAlvo = await buscarUsuarioPorIdAsync(banco, usuarioId);
+    if (!usuarioAlvo) {
+      responderJson(res, 404, { erro: 'Usuario nao encontrado.' });
+      return;
+    }
+
+    if (Number(usuarioAlvo.admin) === 1) {
+      const totalAdmins = await contarAdminsAsync(banco);
+      if (totalAdmins <= 1) {
+        responderJson(res, 409, { erro: 'Nao e permitido remover o ultimo administrador do sistema.' });
+        return;
+      }
+    }
+
+    await removerUsuarioAsync(banco, usuarioId);
+    responderJson(res, 200, {
+      id: usuarioId,
+      mensagem: 'Usuario removido com sucesso.',
+    });
+  } catch (error_) {
+    if (error_ instanceof SyntaxError) {
+      responderJson(res, 400, { erro: 'Corpo JSON invalido.' });
+      return;
+    }
+
+    responderJson(res, 500, { erro: 'Nao foi possivel remover o usuario.' });
+  }
 }
 
 // =============================================================================
@@ -927,36 +911,32 @@ function rotaRemoverUsuario(req, res, urlRequisicao, banco) {
 //   - banco: Conexão com banco de dados SQLite
 // Retorna: true se uma rota foi processada, false se nenhuma rota correspondeu
 function processarRotas(req, res, urlRequisicao, banco) {
-  // ===== ROTAS PÚBLICAS (Não requerem banco de dados) =====
-  if (rotaHealth(req, res, urlRequisicao)) return true;  // GET /api/health
-  if (rotaAlerta(req, res, urlRequisicao)) return true;  // POST /api/alerta
+  const rotas = [
+    () => rotaHealth(req, res, urlRequisicao),
+    () => rotaAlerta(req, res, urlRequisicao),
+    () => rotaUsuario(req, res, urlRequisicao, banco),
+    () => rotaLocais(req, res, urlRequisicao, banco),
+    () => rotaCadastroUsuario(req, res, urlRequisicao, banco),
+    () => rotaLogsAlerta(req, res, urlRequisicao, banco),
+    () => rotaEventoAlerta(req, res, urlRequisicao, banco),
+    () => rotaAlertasAtivos(req, res, urlRequisicao, banco),
+    () => rotaDesativarAlerta(req, res, urlRequisicao, banco),
+    () => rotaLogin(req, res, urlRequisicao, banco),
+    () => rotaAdminStatus(req, res, urlRequisicao, banco),
+    () => rotaCriarAdminInicial(req, res, urlRequisicao, banco),
+    () => rotaAdminLogin(req, res, urlRequisicao, banco),
+    () => rotaListarUsuarios(req, res, urlRequisicao, banco),
+    () => rotaAtualizarPerfilUsuario(req, res, urlRequisicao, banco),
+    () => rotaAtualizarUsuario(req, res, urlRequisicao, banco),
+    () => rotaRemoverUsuario(req, res, urlRequisicao, banco),
+  ];
 
-  // ===== ROTAS COM BANCO DE DADOS =====
-  // Rotas de usuário
-  if (rotaUsuario(req, res, urlRequisicao, banco)) return true;           // GET /api/usuario?nome=...
-  if (rotaLocais(req, res, urlRequisicao, banco)) return true;            // GET /api/locais
-  if (rotaCadastroUsuario(req, res, urlRequisicao, banco)) return true;   // POST /api/usuario
-  
-  // Rotas de alerta
-  if (rotaLogsAlerta(req, res, urlRequisicao, banco)) return true;        // GET /api/admin/logs-alerta
-  if (rotaEventoAlerta(req, res, urlRequisicao, banco)) return true;      // POST /api/alerta/evento
-  if (rotaAlertasAtivos(req, res, urlRequisicao, banco)) return true;     // GET /api/alertas/ativos
-  if (rotaDesativarAlerta(req, res, urlRequisicao, banco)) return true;   // POST /api/alertas/desativar/:id
-  
-  // Rotas de login
-  if (rotaLogin(req, res, urlRequisicao, banco)) return true;             // POST /api/login
-  
-  // Rotas administrativas
-  if (rotaAdminStatus(req, res, urlRequisicao, banco)) return true;                        // GET /api/admin/status
-  if (rotaCriarAdminInicial(req, res, urlRequisicao, banco)) return true;                 // POST /api/admin/criar-inicial
-  if (rotaAdminLogin(req, res, urlRequisicao, banco)) return true;                        // POST /api/admin/login
-  if (rotaListarUsuarios(req, res, urlRequisicao, banco)) return true;                    // GET /api/admin/usuarios
-  if (rotaAtualizarPerfilUsuario(req, res, urlRequisicao, banco)) return true;            // POST /api/admin/usuario/perfil
-  if (rotaAtualizarUsuario(req, res, urlRequisicao, banco)) return true;                  // POST /api/admin/usuario/atualizar
-  if (rotaRemoverUsuario(req, res, urlRequisicao, banco)) return true;                    // POST /api/admin/usuario/remover
+  for (const rotaAtual of rotas) {
+    if (rotaAtual()) {
+      return true;
+    }
+  }
 
-  // Se nenhuma rota API foi encontrada, retorna false para que o servidor
-  // tente servir um arquivo estático (HTML, CSS, JS, imagem, etc.)
   return false;
 }
 
